@@ -25,7 +25,8 @@ struct Recipe: Identifiable, Hashable, Sendable {
     var ingredients: [String]
     var steps: [String]
     let sourceURL: URL?
-    let usedProducts: [String]   // which of my products it uses
+    let usedProducts: [String]   // which of the chosen products it uses
+    var pantryProducts: [String] = []   // other pantry products it also uses
     let missingCount: Int   // more or less what's missing
     let complexity: Complexity   // calculated on the english text
     let area: String?   // cuisine, to mix the results
@@ -80,6 +81,11 @@ actor MealDBCatalog {
     static let shared = MealDBCatalog()
     private var cached: [String]?
     private var cachedDesserts: Set<String>?
+    // recipes per ingredient, so Refresh and Sweet/Savory don't ask the server again
+    private var byIngredient: [String: [MealDBService.MealSummary]] = [:]
+
+    func recipes(with ingredient: String) -> [MealDBService.MealSummary]? { byIngredient[ingredient] }
+    func store(_ meals: [MealDBService.MealSummary], for ingredient: String) { byIngredient[ingredient] = meals }
 
     // ids of all desserts, also downloaded once
     func dessertIDs() async throws -> Set<String> {
@@ -115,6 +121,12 @@ actor MealDBCatalog {
 
 // MARK: - Matching: "whole milk" -> "Milk"
 enum IngredientMatcher {
+    // the keyword first, then the OFF categories (most specific first)
+    static func catalogName(for info: IngredientInfo, in catalog: [String]) -> String? {
+        bestMatch(for: info.keyword, in: catalog)
+            ?? info.categories.reversed().lazy.compactMap { categoryMatch(for: $0, in: catalog) }.first
+    }
+
     private static let stopwords: Set<String> = ["of", "and", "the", "with", "in", "a", "for"]
 
     private struct Entry { let name: String; let tokens: Set<String> }
@@ -210,28 +222,25 @@ enum MealDBService {
     private struct FilterResponse: Decodable { let meals: [MealSummary]? }
     private struct LookupResponse: Decodable { let meals: [[String: String?]]? }
 
-    // Finds recipes for the products.
-    // each recipe gets the sum of the weights of my products in it,
-    // so the ones using expiring stuff come first. one product is enough.
-    // recipes already shown are skipped so Refresh gives new ones.
-    // result = mix of easy/medium/hard and different cuisines
-    static func recipes(for ingredients: [IngredientInfo], type: RecipeType = .all,
+    // Finds recipes for the chosen products.
+    // A recipe must use at least one chosen product (that's the main focus).
+    // Then it gets extra points if it also uses other things in the pantry,
+    // and loses points for every ingredient the user would have to buy.
+    // Recipes already shown are skipped so Refresh gives new ones.
+    static func recipes(for ingredients: [IngredientInfo], pantry: [IngredientInfo] = [],
+                        type: RecipeType = .all,
                         excluding shown: Set<String> = [], limit: Int = 8) async -> RecipeSearchResult {
         guard let catalog = try? await MealDBCatalog.shared.ingredientNames(), !catalog.isEmpty else {
             return RecipeSearchResult(emptyReason: .network)
         }
 
-        // 1. find the TheMealDB ingredient for each product.
-        // first the keyword, then the OFF categories (most specific first),
+        // 1. find the TheMealDB ingredient for each chosen product,
         // and if nothing works, search the word in recipe titles
         var groups: [String: [IngredientInfo]] = [:]
         var pending: [Lookup] = []
         var unused: [String] = []
         for info in ingredients.sorted(by: { $0.weight > $1.weight }).prefix(8) {
-            let viaCategory = info.categories.reversed().lazy
-                .compactMap { IngredientMatcher.categoryMatch(for: $0, in: catalog) }
-                .first
-            if let match = IngredientMatcher.bestMatch(for: info.keyword, in: catalog) ?? viaCategory {
+            if let match = IngredientMatcher.catalogName(for: info, in: catalog) {
                 groups[match, default: []].append(info)
             } else if let term = IngredientMatcher.titleTerm(keyword: info.keyword) {
                 pending.append(Lookup(infos: [info], ingredient: nil, title: term))
@@ -244,41 +253,49 @@ enum MealDBService {
             return RecipeSearchResult(unusedProducts: unused, emptyReason: .noKnownIngredient)
         }
 
+        // the rest of the pantry: only products that are real TheMealDB ingredients,
+        // the most urgent first, max 12 so we don't send too many requests
+        var pantryGroups: [String: [String]] = [:]   // ingredient -> product names
+        for info in pantry.sorted(by: { $0.weight > $1.weight }) {
+            guard let match = IngredientMatcher.catalogName(for: info, in: catalog), groups[match] == nil else { continue }
+            guard pantryGroups[match] != nil || pantryGroups.count < 12 else { continue }
+            pantryGroups[match, default: []].append(info.name)
+        }
+
         // 2. one request per ingredient, all at the same time (free key = 1 ingredient per request).
         // nil = request failed, [] = no recipes
-        let answers = await withTaskGroup(of: (Int, [MealSummary]?).self,
-                                          returning: [(Int, [MealSummary]?)].self) { group in
-            for (index, lookup) in lookups.enumerated() {
-                group.addTask {
-                    if let ingredient = lookup.ingredient {
-                        return (index, try? await search(ingredient: ingredient))
-                    }
-                    if let title = lookup.title {
-                        return (index, try? await search(title: title))
-                    }
-                    return (index, [])
-                }
-            }
-            var all: [(Int, [MealSummary]?)] = []
-            for await entry in group { all.append(entry) }
-            return all
+        async let selectedAnswers = fetch(lookups)
+        async let pantryAnswers = fetchPantry(Array(pantryGroups.keys))
+        let answers = await selectedAnswers
+        let pantryLists = await pantryAnswers
+
+        // which pantry ingredients each recipe uses
+        var pantryHits: [String: Set<String>] = [:]
+        for (ingredient, ids) in pantryLists {
+            for id in ids { pantryHits[id, default: []].insert(ingredient) }
         }
 
         // 3. score
         var scored: [String: Scored] = [:]
         var failedRequests = 0
         for (index, meals) in answers {
-            let infos = lookups[index].infos
+            let lookup = lookups[index]
             guard let meals else { failedRequests += 1; continue }
-            if meals.isEmpty { unused.append(contentsOf: infos.map(\.name)) }
+            if meals.isEmpty { unused.append(contentsOf: lookup.infos.map(\.name)) }
             for meal in meals {
                 var entry = scored[meal.idMeal, default: Scored()]
-                for info in infos {
+                for info in lookup.infos {
                     entry.score += info.weight
                     entry.used.insert(info.name)
                 }
+                entry.have.insert(lookup.ingredient ?? lookup.title ?? "")
                 scored[meal.idMeal] = entry
             }
+        }
+        for id in scored.keys {
+            guard let hits = pantryHits[id] else { continue }
+            scored[id]?.have.formUnion(hits)
+            scored[id]?.pantry = Set(hits.flatMap { pantryGroups[$0] ?? [] })
         }
         let finalScores = scored
         var all = finalScores.map { Candidate(id: $0.key, scored: $0.value) }
@@ -297,8 +314,8 @@ enum MealDBService {
         }
 
         // 4. random pick, but higher score = more chances. so Refresh is always different.
-        // take double so mix() has options. old recipes only if there aren't enough new ones
-        let wanted = limit * 2
+        // take 3x so mix() can drop the complicated ones. old recipes only if there aren't enough new ones
+        let wanted = limit * 3
         var picked = weightedSample(all.filter { !shown.contains($0.id) }, count: wanted)
         if picked.count < limit {
             picked += weightedSample(all.filter { shown.contains($0.id) }, count: wanted - picked.count)
@@ -307,8 +324,11 @@ enum MealDBService {
 
         let details = await withTaskGroup(of: Recipe?.self, returning: [Recipe].self) { group in
             for candidate in candidates {
-                let used = candidate.scored.used.sorted()
-                group.addTask { try? await detail(id: candidate.id, used: used) }
+                let scored = candidate.scored
+                group.addTask {
+                    try? await detail(id: candidate.id, used: scored.used.sorted(),
+                                      pantry: scored.pantry.sorted(), haveCount: scored.have.count)
+                }
             }
             var out: [Recipe] = []
             for await recipe in group { if let recipe { out.append(recipe) } }
@@ -331,17 +351,57 @@ enum MealDBService {
         let title: String?
     }
 
+    private static func fetch(_ lookups: [Lookup]) async -> [(Int, [MealSummary]?)] {
+        await withTaskGroup(of: (Int, [MealSummary]?).self, returning: [(Int, [MealSummary]?)].self) { group in
+            for (index, lookup) in lookups.enumerated() {
+                group.addTask {
+                    if let ingredient = lookup.ingredient {
+                        return (index, try? await search(ingredient: ingredient))
+                    }
+                    if let title = lookup.title {
+                        return (index, try? await search(title: title))
+                    }
+                    return (index, [])
+                }
+            }
+            var all: [(Int, [MealSummary]?)] = []
+            for await entry in group { all.append(entry) }
+            return all
+        }
+    }
+
+    // recipe ids for each pantry ingredient (a failed request just counts as none)
+    private static func fetchPantry(_ ingredients: [String]) async -> [String: Set<String>] {
+        await withTaskGroup(of: (String, Set<String>).self, returning: [String: Set<String>].self) { group in
+            for ingredient in ingredients {
+                group.addTask {
+                    let meals = (try? await search(ingredient: ingredient)) ?? []
+                    return (ingredient, Set(meals.map(\.idMeal)))
+                }
+            }
+            var all: [String: Set<String>] = [:]
+            for await (ingredient, ids) in group { all[ingredient] = ids }
+            return all
+        }
+    }
+
     // MARK: Random pick + mix
-    private struct Scored: Sendable { var score = 0; var used: Set<String> = [] }
+    private struct Scored: Sendable {
+        var score = 0                  // weights of the chosen products it uses
+        var used: Set<String> = []     // chosen products it uses
+        var pantry: Set<String> = []   // other pantry products it uses
+        var have: Set<String> = []     // its ingredients the user already has
+    }
     private struct Candidate: Sendable { let id: String; let scored: Scored }
 
     // weighted random sampling (Efraimidis-Spirakis, found it online):
-    // key = u^(1/w), highest keys win. w = score squared so urgent stuff matters more
+    // key = u^(1/w), highest keys win. chosen products count double, pantry ones help a bit
     private static func weightedSample(_ candidates: [Candidate], count: Int) -> [Candidate] {
         guard count > 0 else { return [] }
         return candidates
             .map { candidate -> (Candidate, Double) in
-                let weight = Double(max(1, candidate.scored.score * candidate.scored.score))
+                let points = Double(candidate.scored.score * 2 + candidate.scored.pantry.count)
+                let weight = max(1, points * points)
                 return (candidate, pow(Double.random(in: 0.000_001...1), 1 / weight))
             }
             .sorted { $0.1 > $1.1 }
@@ -349,31 +409,30 @@ enum MealDBService {
             .map(\.0)
     }
 
-    // about half easy, a third medium, rest hard. max 2 per cuisine.
-    // if something's missing fill with the best ones left
+    // ranking: chosen products matter most, then other pantry products,
+    // and every ingredient to buy costs a point. elaborate recipes only if nothing else is left.
+    // max 2 per cuisine so the list isn't all Italian
     private static func mix(_ recipes: [Recipe], scores: [String: Int], limit: Int) -> [Recipe] {
+        func fit(_ recipe: Recipe) -> Int {
+            5 * (scores[recipe.id] ?? 0) + 2 * recipe.pantryProducts.count - recipe.missingCount
+        }
         func better(_ a: Recipe, _ b: Recipe) -> Bool {
-            let sa = scores[a.id] ?? 0, sb = scores[b.id] ?? 0
-            if sa != sb { return sa > sb }   // expiring first
+            let fa = fit(a), fb = fit(b)
+            if fa != fb { return fa > fb }
             if a.complexity != b.complexity { return a.complexity < b.complexity }   // then easier
-            return a.missingCount < b.missingCount   // then less missing ingredients
+            return a.missingCount < b.missingCount   // then less to buy
         }
         let byPriority = recipes.sorted(by: better)
 
-        let easy = limit / 2
-        let medium = (limit + 2) / 3
-        let quota: [Complexity: Int] = [.easy: easy, .medium: medium, .elaborate: max(1, limit - easy - medium)]
-
         var chosen: [Recipe] = []
-        var perLevel: [Complexity: Int] = [:]
         var perArea: [String: Int] = [:]
-        for recipe in byPriority where chosen.count < limit {
+        for recipe in byPriority where chosen.count < limit && recipe.complexity != .elaborate {
             let areaCount = recipe.area.map { perArea[$0, default: 0] } ?? 0
-            guard perLevel[recipe.complexity, default: 0] < quota[recipe.complexity, default: 0], areaCount < 2 else { continue }
+            guard areaCount < 2 else { continue }
             chosen.append(recipe)
-            perLevel[recipe.complexity, default: 0] += 1
             if let area = recipe.area { perArea[area, default: 0] += 1 }
         }
+        // not enough simple ones: fill with the best of what's left
         for recipe in byPriority where chosen.count < limit && !chosen.contains(recipe) {
             chosen.append(recipe)
         }
@@ -385,11 +444,14 @@ enum MealDBService {
         let formatted = ingredient.lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: " ", with: "_")
+        if let saved = await MealDBCatalog.shared.recipes(with: formatted) { return saved }
         guard let encoded = formatted.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "\(base)/filter.php?i=\(encoded)") else { return [] }
         let data = try await fetch(url)
         // when there are no results the API returns something weird, so just empty
-        return (try? JSONDecoder().decode(FilterResponse.self, from: data))?.meals ?? []
+        let meals = (try? JSONDecoder().decode(FilterResponse.self, from: data))?.meals ?? []
+        await MealDBCatalog.shared.store(meals, for: formatted)
+        return meals
     }
 
     // recipes with the word in the title
@@ -401,7 +463,7 @@ enum MealDBService {
         return (try? JSONDecoder().decode(FilterResponse.self, from: data))?.meals ?? []
     }
 
-    static func detail(id: String, used: [String]) async throws -> Recipe? {
+    static func detail(id: String, used: [String], pantry: [String] = [], haveCount: Int = 0) async throws -> Recipe? {
         guard let url = URL(string: "\(base)/lookup.php?i=\(id)") else { return nil }
         let data = try await fetch(url)
         guard let meal = try JSONDecoder().decode(LookupResponse.self, from: data).meals?.first else { return nil }
@@ -429,7 +491,8 @@ enum MealDBService {
             steps: stepList,
             sourceURL: (value("strSource") ?? value("strYoutube")).flatMap(URL.init(string:)),
             usedProducts: used,
-            missingCount: max(0, ingredients.count - used.count),
+            pantryProducts: pantry,
+            missingCount: max(0, ingredients.count - max(haveCount, used.count)),
             complexity: .rate(ingredients: ingredients.count, characters: stepList.joined().count),
             area: value("strArea").flatMap { $0.caseInsensitiveCompare("Unknown") == .orderedSame ? nil : $0 },
             category: value("strCategory")

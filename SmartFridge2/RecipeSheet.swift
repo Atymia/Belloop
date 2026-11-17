@@ -1,9 +1,12 @@
 import SwiftUI
+import SwiftData
 import Translation
 
 // MARK: - Recipe list (tap one to open it)
 struct RecipeSheet: View {
     let items: [FoodItem]
+    // the whole pantry: recipes get extra points if they use other products too
+    @Query private var pantry: [FoodItem]
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var thumbnailSize: CGFloat = 72
@@ -14,20 +17,31 @@ struct RecipeSheet: View {
         case failed(RecipeSearchResult.EmptyReason)
     }
 
-    @State private var state: LoadState = .loading
-    @State private var isLoading = false
+    // one list per type, so going Savory -> Sweet -> Savory shows the same recipes.
+    // only Refresh makes a new list
+    private struct TypeResult {
+        var state: LoadState
+        var shownIDs: Set<String>   // already shown, so Refresh gives new ones
+        var unused: [String]        // products with no recipes, shown at the bottom
+        var translated = false
+    }
+
+    @State private var results: [RecipeType: TypeResult] = [:]
+    @State private var loading: Set<RecipeType> = []
     @State private var translationConfig: TranslationSession.Configuration?
     @State private var isTranslating = false
     @State private var translationFailed = false
-    // already shown, so Refresh gives new ones
-    @State private var shownIDs: Set<String> = []
-    // products with no recipes, shown at the bottom
-    @State private var unused: [String] = []
     // sweet or savory, nil until the user picks
     @State private var recipeType: RecipeType?
-    // remember the type of the current list, because going back from a recipe
-    // runs .task again and I don't want it to reload
-    @State private var loadedType: RecipeType?
+
+    private var state: LoadState {
+        guard let recipeType, !loading.contains(recipeType), let result = results[recipeType] else { return .loading }
+        return result.state
+    }
+
+    private var unused: [String] { recipeType.flatMap { results[$0]?.unused } ?? [] }
+
+    private var isLoading: Bool { recipeType.map { loading.contains($0) } ?? false }
 
     private var noneTitle: LocalizedStringKey {
         switch recipeType {
@@ -88,16 +102,15 @@ struct RecipeSheet: View {
                     Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Refresh", systemImage: "arrow.clockwise") { Task { await load() } }
+                    Button("Refresh", systemImage: "arrow.clockwise") { reload() }
                         .disabled(recipeType == nil || isLoading || isTranslating)
                 }
             }
-            // loads when the type is picked or changed
+            // loads the first time a type is picked. if that type already has a list
+            // (or we're coming back from a recipe) nothing happens
             .task(id: recipeType) {
-                guard let recipeType, recipeType != loadedType else { return }
-                loadedType = recipeType
-                shownIDs.removeAll()
-                await load()
+                guard let recipeType, results[recipeType] == nil, !loading.contains(recipeType) else { return }
+                await load(recipeType)
             }
             .translationTask(translationConfig) { session in
                 await translate(using: session)
@@ -141,7 +154,7 @@ struct RecipeSheet: View {
             } description: {
                 Text("Check your connection and try again.")
             } actions: {
-                Button("Try Again") { Task { await load() } }
+                Button("Try Again") { reload() }
                     .buttonStyle(.bordered)
             }
 
@@ -172,43 +185,66 @@ struct RecipeSheet: View {
     }
 
     // MARK: - Loading
-    private func load() async {
-        state = .loading
-        translationConfig = nil
+    private func reload() {
+        guard let recipeType else { return }
+        Task { await load(recipeType) }
+    }
+
+    private func load(_ type: RecipeType) async {
+        loading.insert(type)
+        defer { loading.remove(type) }
         translationFailed = false
-        isLoading = true
-        defer { isLoading = false }
 
-        let infos = await IngredientNormalizer.resolve(items)
-        guard let type = recipeType else { return }
-        var result = await MealDBService.recipes(for: infos, type: type, excluding: shownIDs)
-        if result.recipes.isEmpty && !shownIDs.isEmpty {
+        var shown = results[type]?.shownIDs ?? []
+        let chosen = await IngredientNormalizer.resolve(items)
+        let chosenIDs = Set(items.map(\.uid))
+        let others = await IngredientNormalizer.resolve(pantry.filter { !chosenIDs.contains($0.uid) }, limit: 12)
+
+        var result = await MealDBService.recipes(for: chosen, pantry: others, type: type, excluding: shown)
+        if result.recipes.isEmpty && !shown.isEmpty {
             // we've shown everything, start again
-            shownIDs.removeAll()
-            result = await MealDBService.recipes(for: infos, type: type, excluding: [])
+            shown.removeAll()
+            result = await MealDBService.recipes(for: chosen, pantry: others, type: type, excluding: [])
         }
-        guard !Task.isCancelled else { return }   // the type changed while loading, ignore
-        unused = result.unusedProducts
-        let recipes = result.recipes
-        guard !recipes.isEmpty else { state = .failed(result.emptyReason ?? .noKnownIngredient); return }
-        shownIDs.formUnion(recipes.map(\.id))
-        state = .results(recipes)
+        guard !Task.isCancelled else { return }   // the sheet was closed, ignore
 
-        // translate if the phone isn't in english
+        let recipes = result.recipes
+        guard !recipes.isEmpty else {
+            results[type] = TypeResult(state: .failed(result.emptyReason ?? .noKnownIngredient),
+                                       shownIDs: shown, unused: result.unusedProducts, translated: true)
+            return
+        }
+        shown.formUnion(recipes.map(\.id))
+        results[type] = TypeResult(state: .results(recipes), shownIDs: shown, unused: result.unusedProducts)
+        requestTranslation()
+    }
+
+    // translate if the phone isn't in english
+    private func requestTranslation() {
         let target = Locale.current.language
-        if target.languageCode != .english {
+        guard target.languageCode != .english else { return }
+        if translationConfig == nil {
             translationConfig = .init(source: Locale.Language(identifier: "en"), target: target)
+        } else {
+            translationConfig?.invalidate()   // runs .translationTask again
         }
     }
 
     private func translate(using session: TranslationSession) async {
-        guard case .results(let recipes) = state else { return }
         isTranslating = true
         defer { isTranslating = false }
-        do {
-            state = .results(try await RecipeTranslator.translate(recipes, using: session))
-        } catch {
-            translationFailed = true
+        for (type, entry) in results where !entry.translated {
+            guard case .results(let recipes) = entry.state else { continue }
+            do {
+                let translated = try await RecipeTranslator.translate(recipes, using: session)
+                // if Refresh made a new list in the meantime, don't overwrite it
+                guard case .results(let now) = results[type]?.state, now.map(\.id) == recipes.map(\.id) else { continue }
+                results[type]?.state = .results(translated)
+                results[type]?.translated = true
+            } catch {
+                translationFailed = true
+                results[type]?.translated = true
+            }
         }
     }
 
@@ -272,6 +308,12 @@ struct RecipeSheet: View {
                 if !recipe.usedProducts.isEmpty {
                     Text("Uses \(recipe.usedProducts.formatted(.list(type: .and)))")
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                if !recipe.pantryProducts.isEmpty {
+                    Text("Also from your pantry: \(recipe.pantryProducts.formatted(.list(type: .and)))")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
