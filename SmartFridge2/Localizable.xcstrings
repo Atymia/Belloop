@@ -1654,6 +1654,17 @@
         }
       }
     },
+    "Searching products…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerco i prodotti…"
+          }
+        }
+      }
+    },
     "Send Feedback" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1994,6 +2005,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questa azione non si può annullare."
+          }
+        }
+      }
+    },
+    "This is a label printed by the store (meat, fish, deli counter), so no database knows it. Type the name, then scan the date on the label." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa è un'etichetta stampata dal supermercato (carne, pesce, banco gastronomia), quindi nessun database la conosce. Scrivi il nome, poi scansiona la data sull'etichetta."
           }
         }
       }

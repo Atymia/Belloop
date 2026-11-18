@@ -84,9 +84,15 @@ enum OpenFoodFactsService {
         let data = try await get(url)
         let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let names = ((root?["suggestions"] as? [String]) ?? [])
+            .filter { !isAdditive($0) }   // E155 & co. are on labels, but nobody keeps them in the pantry
             .map { $0.prefix(1).uppercased() + $0.dropFirst() }   // capitalize
         await searchGuard.storeNames(names, for: key)
         return names
+    }
+
+    // "E155", "e 322", "E471a"...
+    private static func isAdditive(_ name: String) -> Bool {
+        name.range(of: #"^[eE] ?\d{3,4}[a-zA-Z]?$"#, options: .regularExpression) != nil
     }
 
     // MARK: Text search (old endpoint, v2 doesn't have it)
@@ -111,13 +117,16 @@ enum OpenFoodFactsService {
             guard let world = try? await request(query, words: words, host: "world") else { return [] }
             results = world
         }
-        await searchGuard.store(results, for: key)
+        // an empty answer isn't saved, so typing the same thing again asks the server again
+        // (before, one bad answer stuck until the app was closed)
+        if !results.isEmpty { await searchGuard.store(results, for: key) }
         return results
     }
 
     private static func request(_ query: String, words: [String], host: String) async throws -> [OFFProduct] {
-        // tell the user if we hit the limit instead of showing nothing
-        guard await searchGuard.allowRequest() else { throw OFFSearchError.rateLimited }
+        // too many searches in the last minute: wait for a free slot instead of giving up.
+        // if the user keeps typing this task is cancelled, so only the latest search waits
+        try await waitForSlot()
 
         let lang = language
         guard var comps = URLComponents(string: "https://\(host).openfoodfacts.org/cgi/search.pl") else { return [] }
@@ -132,14 +141,21 @@ enum OpenFoodFactsService {
         ]
         guard let url = comps.url else { return [] }
 
-        let data = try await get(url)
+        let data: Data
+        do {
+            data = try await get(url)
+        } catch let error as URLError where error.code == .timedOut {
+            // the search server is often slow the first time, then it's fast: try once more
+            try await waitForSlot()
+            data = try await get(url)
+        }
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let list = root["products"] as? [[String: Any]] else { return [] }
 
         var seen = Set<String>()
         let matching = list
+            .filter { rawNameMatches($0, words: words, lang: lang) }
             .compactMap { parse($0, lang: lang, fallbackCode: nil) }
-            .filter { nameMatches($0, words: words) }
             .filter { seen.insert($0.displayName.lowercased()).inserted }   // no duplicates
 
         // names starting with the text first, then by popularity
@@ -154,10 +170,23 @@ enum OpenFoodFactsService {
             .map(\.element)
     }
 
-    private static func nameMatches(_ product: OFFProduct, words: [String]) -> Bool {
-        let nameWords = fold("\(product.name) \(product.brand ?? "")")
-            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+    // checks ALL the names of the product (italian, english, generic) + brand,
+    // so "chocolate" also finds a product whose italian name is "Cioccolato fondente"
+    private static func rawNameMatches(_ p: [String: Any], words: [String], lang: String) -> Bool {
+        let keys = ["product_name", "product_name_\(lang)", "product_name_en", "generic_name",
+                    "generic_name_\(lang)", "generic_name_en", "brands"]
+        let text = keys.compactMap { p[$0] as? String }.joined(separator: " ")
+        let nameWords = fold(text).split(whereSeparator: { !$0.isLetter && !$0.isNumber })
         return words.allSatisfy { word in nameWords.contains { $0.hasPrefix(word) } }
+    }
+
+    // sleeps until the guard allows one more request (throws if the search was cancelled)
+    private static func waitForSlot() async throws {
+        while true {
+            let wait = await searchGuard.reserve()
+            if wait <= 0 { return }
+            try await Task.sleep(for: .seconds(wait))
+        }
     }
 
     // lowercase without accents
@@ -179,13 +208,16 @@ enum OpenFoodFactsService {
         func cachedNames(_ key: String) -> [String]? { names[key] }
         func storeNames(_ value: [String], for key: String) { names[key] = value }
 
-        // max ~10 searches/min, I keep it a bit lower
-        func allowRequest() -> Bool {
+        // max ~10 searches/min, I keep it a bit lower.
+        // returns 0 if we can go now (and counts it), otherwise how many seconds to wait
+        func reserve() -> TimeInterval {
             let now = Date()
             requests = requests.filter { now.timeIntervalSince($0) < 60 }
-            guard requests.count < 8 else { return false }
-            requests.append(now)
-            return true
+            guard requests.count >= 8, let oldest = requests.first else {
+                requests.append(now)
+                return 0
+            }
+            return 60 - now.timeIntervalSince(oldest) + 0.2
         }
     }
 
