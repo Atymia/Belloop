@@ -361,7 +361,7 @@ struct AddItemView: View {
         item.categoryTags = categories
         Task {
             item.recipeKeyword = await IngredientNormalizer.englishKeyword(
-                for: finalName, englishName: english, category: categories.last
+                for: finalName, englishName: english, categories: categories
             )
             item.recipeKeywordVersion = IngredientNormalizer.version
         }

@@ -2,27 +2,34 @@ import Foundation
 import FoundationModels
 
 @Generable
-struct EnglishIngredient {
+struct ProductName {
     @Guide(description: """
-        The generic food in English, lowercase, no brand and no quantity. \
-        Prepared foods, sauces and spreads stay what they are: never replace them with one of their ingredients. \
-        Examples: 'chicken breast', 'milk', 'tomatoes', 'parmesan', 'pesto', 'passata', 'hummus'
+        What the product is, in English, lowercase, generic, no brand and no quantity. \
+        Name the product itself, never one of its ingredients. \
+        Examples: 'milk', 'chicken breast', 'pesto', 'passata', 'digestive biscuits', \
+        'hot chocolate mix', 'chocolate corn cakes', 'protein bar'
         """)
-    var name: String
+    var product: String
 }
 
-// "Latte Parmalat intero UHT" -> "milk", so we can search recipes in english
+// "Latte Parmalat intero UHT" -> "milk", so we can search recipes in english.
+// A product is never turned into one of its ingredients: "chocolate corn cakes" stay corn cakes.
+// Then the recipe database decides: if no recipe uses corn cakes, they're simply not used
 enum IngredientNormalizer {
     // increase this when the rules change, old keywords get recalculated
     // v2: pesto stays pesto (not basil)
     // v3: scanned products also save their OFF categories
-    static let version = 3
+    // v5: the model names the product itself (corn cakes, hot chocolate mix), never its ingredients
+    static let version = 5
 
-    // tries in order: OFF english name, apple model, OFF category, small dictionary, the name as is
-    static func englishKeyword(for name: String, englishName: String?, category: String?) async -> String {
+    // with Apple Intelligence: the model says what the product is (using the database info too).
+    // without it: OFF english name, OFF category, small dictionary, the name as is
+    static func englishKeyword(for name: String, englishName: String?, categories: [String]) async -> String {
+        if let viaModel = await viaFoundationModel(name, englishName: englishName, categories: categories) {
+            return viaModel
+        }
         if let englishName, !englishName.isEmpty { return englishName.lowercased() }
-        if let viaModel = await viaFoundationModel(name) { return viaModel }
-        if let category, !category.isEmpty { return category }
+        if let category = categories.last, !category.isEmpty { return category }
         return dictionaryTranslation(name)
     }
 
@@ -44,7 +51,7 @@ enum IngredientNormalizer {
                     item.categoryTags = product.categories
                     english = product.englishName
                 }
-                keyword = await englishKeyword(for: item.name, englishName: english, category: item.categoryTags.last)
+                keyword = await englishKeyword(for: item.name, englishName: english, categories: item.categoryTags)
                 item.recipeKeyword = keyword
                 item.recipeKeywordVersion = version
             }
@@ -55,18 +62,24 @@ enum IngredientNormalizer {
     }
 
     // MARK: - Apple Intelligence (if available)
-    private static func viaFoundationModel(_ name: String) async -> String? {
+    // nil if the model isn't available or can't answer
+    private static func viaFoundationModel(_ name: String, englishName: String?, categories: [String]) async -> String? {
         guard case .available = SystemLanguageModel.default.availability else { return nil }
         let session = LanguageModelSession(instructions: """
-            You convert grocery product names, in any language and often with brand names, \
-            into the generic English food name used in recipes. Answer with the food only. \
-            A prepared product keeps its own name: "Pesto alla genovese" is "pesto", not "basil"; \
-            "Passata di pomodoro" is "passata", not "tomatoes".
+            You look at grocery products, in any language and often with brand names, \
+            and say what they are. \
+            A product is never one of its ingredients: "Gallette di mais al cioccolato" are \
+            chocolate corn cakes (a snack), not corn and not chocolate; "Ciobar" is a hot chocolate mix \
+            (a drink), not chocolate; a protein bar with nuts is a snack, not nuts. \
+            Prepared foods keep their own name: "Pesto alla genovese" is pesto, not basil.
             """)
-        guard let response = try? await session.respond(to: "Product: \(name)", generating: EnglishIngredient.self) else {
-            return nil
-        }
-        let value = response.content.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // the database info helps a lot with brand names
+        var prompt = "Product: \(name)"
+        if let englishName, !englishName.isEmpty { prompt += "\nEnglish name: \(englishName)" }
+        if !categories.isEmpty { prompt += "\nCategories: \(categories.suffix(4).joined(separator: ", "))" }
+
+        guard let response = try? await session.respond(to: prompt, generating: ProductName.self) else { return nil }
+        let value = response.content.product.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return value.isEmpty ? nil : value
     }
 

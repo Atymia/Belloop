@@ -165,28 +165,25 @@ enum IngredientMatcher {
         return text
     }
 
-    // for OFF categories like "hazelnut spreads": exact match or same last word.
-    // again no split on and/with
+    // for OFF categories: an exact match, or a one-word category inside a longer ingredient
+    // ("digestives" -> "Digestive Biscuits").
+    // nothing looser: categories are too broad to guess from (Ciobar is filed under "cocoa powders",
+    // chocolate corn cakes under "cereals", but you can't cook with them like that)
     static func categoryMatch(for category: String, in catalog: [String]) -> String? {
-        // "digestives covered with chocolate" -> digestives
-        var ordered = orderedTokens(mainPart(of: category))
-        while let last = ordered.last, ordered.count > 1, last.hasSuffix("ed") { ordered.removeLast() }
+        let ordered = orderedTokens(mainPart(of: category))
         let key = Set(ordered)
-        guard let head = ordered.last else { return nil }
+        guard !key.isEmpty else { return nil }
         let entries = catalog.map { Entry(name: $0, tokens: Set(orderedTokens($0))) }
         if let exact = entries.first(where: { $0.tokens == key }) { return exact.name }
-        let inside = entries.filter { !$0.tokens.isEmpty && $0.tokens.isSubset(of: key) && $0.tokens.contains(head) }
-        if let best = inside.max(by: { $0.tokens.count < $1.tokens.count }) { return best.name }
-        // one word category in a longer ingredient, e.g. digestives -> Digestive Biscuits
         guard ordered.count == 1 else { return nil }
         return entries.filter { key.isSubset(of: $0.tokens) }.min(by: { $0.tokens.count < $1.tokens.count })?.name
     }
 
     // if it's not an ingredient, maybe we can find it in recipe titles
     static func titleTerm(keyword: String) -> String? {
-        // only short words like pesto or tahini, long names don't work
+        // only one word like pesto or tahini: two words matched random titles
         let words = orderedTokens(keyword)
-        guard (1...2).contains(words.count), keyword.count >= 4 else { return nil }
+        guard words.count == 1, keyword.count >= 4 else { return nil }
         return keyword
     }
 
@@ -288,7 +285,9 @@ enum MealDBService {
                     entry.score += info.weight
                     entry.used.insert(info.name)
                 }
-                entry.have.insert(lookup.ingredient ?? lookup.title ?? "")
+                let key = lookup.ingredient ?? lookup.title ?? ""
+                entry.have.insert(key)
+                entry.chosenKeys.insert(key)
                 scored[meal.idMeal] = entry
             }
         }
@@ -326,8 +325,11 @@ enum MealDBService {
             for candidate in candidates {
                 let scored = candidate.scored
                 group.addTask {
-                    try? await detail(id: candidate.id, used: scored.used.sorted(),
-                                      pantry: scored.pantry.sorted(), haveCount: scored.have.count)
+                    guard let recipe = try? await detail(id: candidate.id, used: scored.used.sorted(),
+                                                         pantry: scored.pantry.sorted(), haveCount: scored.have.count)
+                    else { return nil }
+                    // double check: the recipe really has the chosen product in it
+                    return uses(recipe, any: scored.chosenKeys) ? recipe : nil
                 }
             }
             var out: [Recipe] = []
@@ -339,7 +341,8 @@ enum MealDBService {
         let matching = details.filter { type.matches(category: $0.category) }
         let recipes = mix(matching, scores: finalScores.mapValues(\.score), limit: limit)
         guard !recipes.isEmpty else {
-            return RecipeSearchResult(unusedProducts: unused, emptyReason: details.isEmpty ? .network : .noneOfType)
+            return RecipeSearchResult(unusedProducts: unused,
+                                      emptyReason: details.isEmpty ? .network : .noneOfType)
         }
         return RecipeSearchResult(recipes: recipes, unusedProducts: unused)
     }
@@ -391,6 +394,17 @@ enum MealDBService {
         var used: Set<String> = []     // chosen products it uses
         var pantry: Set<String> = []   // other pantry products it uses
         var have: Set<String> = []     // its ingredients the user already has
+        var chosenKeys: Set<String> = []   // the ingredient names (or title words) it was found with
+    }
+
+    // true if one of the keys is in the recipe's ingredients or title (English text, before translation)
+    private static func uses(_ recipe: Recipe, any keys: Set<String>) -> Bool {
+        let ingredients = recipe.ingredients.joined(separator: " | ").lowercased()
+        let title = recipe.title.lowercased()
+        return keys.contains { key in
+            let k = key.lowercased()
+            return !k.isEmpty && (ingredients.contains(k) || title.contains(k))
+        }
     }
     private struct Candidate: Sendable { let id: String; let scored: Scored }
 
