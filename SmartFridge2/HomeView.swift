@@ -83,7 +83,7 @@ struct HomeView: View {
                         allFreshRow
                     } else {
                         ForEach(expiring) { item in
-                            NavigationLink(value: item) { ItemRow(item: item) }
+                            NavigationLink(value: item) { ItemRow(item: item, dateOnly: true) }
                         }
                     }
                 }

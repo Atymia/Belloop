@@ -47,6 +47,8 @@ struct ItemThumbnail: View {
 // MARK: - Row
 struct ItemRow: View {
     let item: FoodItem
+    // Home already says "Expiring soon", so there the row shows only the date
+    var dateOnly = false
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
@@ -63,9 +65,17 @@ struct ItemRow: View {
                     .font(.headline)
                     .lineLimit(2)
                 // just text so it's aligned with the name
-                Text(verbatim: "\(item.statusText) · \(item.expirationDate.formatted(.dateTime.day().month(.abbreviated)))")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Group {
+                    // with very big text the icon is hidden, so keep the full text there
+                    if dateOnly && !typeSize.isAccessibilitySize {
+                        Text(date)
+                            .accessibilityLabel(Text(verbatim: "\(item.statusText), \(date)"))   // VoiceOver still hears the status
+                    } else {
+                        Text(verbatim: "\(item.statusText) · \(date)")
+                    }
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -78,6 +88,10 @@ struct ItemRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var date: String {
+        item.expirationDate.formatted(.dateTime.day().month(.abbreviated))
     }
 }
 
