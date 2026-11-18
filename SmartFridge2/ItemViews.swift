@@ -154,12 +154,15 @@ struct ItemDetailView: View {
             item.recipeKeywordVersion = 0
             NotificationManager.schedule(for: item)
         }
-        .confirmationDialog("Remove \(item.name)?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Remove", role: .destructive) {
+        // no title: you just tapped "Remove from pantry", no need to ask the same thing again
+        .confirmationDialog("Remove Product", isPresented: $confirmDelete, titleVisibility: .hidden) {
+            Button("Remove Product", role: .destructive) {
                 dismiss()
                 // delete a bit later, otherwise the view crashes while going back
                 Task { @MainActor in context.remove(item) }
             }
+        } message: {
+            Text("This product will be permanently removed from your pantry.")
         }
     }
 }

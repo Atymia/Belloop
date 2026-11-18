@@ -24,7 +24,7 @@ enum ActiveSheet: Identifiable {
 struct ContentView: View {
     @State private var selectedTab: AppTab = .home
     @State private var activeSheet: ActiveSheet?
-    @AppStorage(AppSettings.Key.appearance) private var appearance = Appearance.system.rawValue
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -56,9 +56,9 @@ struct ContentView: View {
                 ProfileView()
             }
         }
-        // theme from settings. set on the window so it also works on sheets already open
-        .onChange(of: appearance, initial: true) {
-            (Appearance(rawValue: appearance) ?? .system).applyToWindows()
+        // every time the app is opened, rebuild the notifications from what's in the pantry
+        .onChange(of: scenePhase, initial: true) {
+            if scenePhase == .active { NotificationManager.refresh() }
         }
     }
 }

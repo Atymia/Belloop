@@ -4,9 +4,7 @@ import SwiftData
 // MARK: - Settings
 struct SettingsView: View {
     @Query private var items: [FoodItem]
-    @Environment(\.openURL) private var openURL
 
-    @AppStorage(AppSettings.Key.appearance) private var appearance = Appearance.system.rawValue
     @AppStorage(AppSettings.Key.notificationsOn) private var notificationsOn = true
     @AppStorage(AppSettings.Key.askAfterExpiry) private var askAfterExpiry = true
     @AppStorage(AppSettings.Key.reminderDays) private var reminderDays = AppSettings.defaultReminderDays
@@ -20,33 +18,10 @@ struct SettingsView: View {
         Binding(get: { Double(reminderDays) }, set: { reminderDays = Int($0.rounded()) })
     }
 
-    // current language name, e.g. "Italiano"
-    private var languageName: String {
-        let code = Bundle.main.preferredLocalizations.first ?? "en"
-        let locale = Locale(identifier: code)
-        return locale.localizedString(forLanguageCode: code)?.capitalized(with: locale) ?? code
-    }
-
     var body: some View {
         Form {
-            Section("Theme") {
-                ThemePicker(selection: $appearance)
-            }
-
-            // the language is changed from the iPhone settings, so we just open them
-            Section {
-                Button {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
-                } label: {
-                    LabeledContent("Language", value: languageName)
-                        .foregroundStyle(.primary)
-                }
-            } header: {
-                Text("Language")
-            } footer: {
-                Text("Opens iPhone Settings, where you can choose the language of this app.")
-            }
-
+            // no Theme and no Language here: the app follows the iPhone
+            // (dark mode from Control Center, language from the iPhone Settings)
             Section {
                 Toggle("Notifications", isOn: $notificationsOn)
                 VStack(alignment: .leading, spacing: 8) {
@@ -65,7 +40,7 @@ struct SettingsView: View {
             } header: {
                 Text("Notifications")
             } footer: {
-                Text("The reminder arrives at 9:00, and the product appears in Expiring soon. The day after a product expires, the app asks whether you used it.")
+                Text("You'll get one reminder at 9:00 for everything that's about to expire, and a question the day after something passes its date.")
             }
 
             Section("Help") {
@@ -92,69 +67,6 @@ struct SettingsView: View {
         .onChange(of: reminderDays) { NotificationManager.rescheduleAll(items) }
         .onChange(of: notificationsOn) { NotificationManager.rescheduleAll(items) }
         .onChange(of: askAfterExpiry) { NotificationManager.rescheduleAll(items) }
-    }
-}
-
-// MARK: - Theme picker (like in Figma)
-private struct ThemePicker: View {
-    @Binding var selection: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ForEach(Appearance.allCases) { option in
-                let isSelected = selection == option.rawValue
-                Button { selection = option.rawValue } label: {
-                    VStack(spacing: 8) {
-                        ThemePreview(option: option)
-                            .frame(width: 64, height: 120)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 14)
-                                    .strokeBorder(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary),
-                                                  lineWidth: isSelected ? 3 : 1)
-                            }
-                        Text(option.title).font(.subheadline)
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.title3)
-                            .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(option.title))
-                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-            }
-        }
-        .padding(.vertical, 8)
-    }
-}
-
-private struct ThemePreview: View {
-    let option: Appearance
-
-    var body: some View {
-        Group {
-            switch option {
-            case .light: screen(light: true)
-            case .dark: screen(light: false)
-            case .system: HStack(spacing: 0) { screen(light: true); screen(light: false) }
-            }
-        }
-        .clipShape(.rect(cornerRadius: 14))
-    }
-
-    // small phone preview
-    private func screen(light: Bool) -> some View {
-        let card = light ? Color.white : Color(white: 0.22)
-        return VStack(spacing: 5) {
-            RoundedRectangle(cornerRadius: 4).fill(card).frame(height: 24)
-            RoundedRectangle(cornerRadius: 4).fill(card).frame(height: 12)
-            RoundedRectangle(cornerRadius: 4).fill(card).frame(height: 12)
-            Spacer(minLength: 0)
-        }
-        .padding(6)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(light ? Color(white: 0.93) : Color(white: 0.08))
     }
 }
 
@@ -195,9 +107,9 @@ struct HowToUseView: View {
         Step(id: 3, symbol: "refrigerator", title: "3. Save it",
              text: "The product goes into your Pantry, sorted by expiration date."),
         Step(id: 4, symbol: "bell.badge", title: "4. Get reminded",
-             text: "Before the date you get a notification, and the product appears on Home under Expiring soon. The day after, the app asks whether you used it."),
+             text: "Before the date you get a reminder, and the product shows up on Home under Expiring soon. The day after, you'll be asked if you used it."),
         Step(id: 5, symbol: "fork.knife", title: "5. Cook it",
-             text: "Recipe ideas finds real recipes that use what is about to expire. Tap Refresh for new ones, or pick products from your Pantry."),
+             text: "Recipe ideas finds real recipes that use what's about to expire. Pull the list down for new ones, or pick products from your Pantry."),
     ]
 
     var body: some View {

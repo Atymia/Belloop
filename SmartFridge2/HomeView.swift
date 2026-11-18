@@ -26,17 +26,11 @@ struct HomeView: View {
     // recipes use all the urgent stuff, expired ones included
     private var forRecipes: [FoodItem] { items.filter { $0.daysLeft <= reminderDays } }
 
+    // the products are already listed above, so no need to repeat them here
     private var recipeCardText: LocalizedStringKey {
-        // e.g. "Milk and Eggs are about to expire."
-        let names = forRecipes.map(\.name)
-        switch names.count {
-        case 0: break
-        case 1: return "\(names[0]) is about to expire. What shall we cook with it?"
-        case 2: return "\(names[0]) and \(names[1]) are about to expire. What shall we cook with them?"
-        default: return "\(names[0]), \(names[1]) and \(names.count - 2) more are about to expire. What shall we cook with them?"
-        }
-        if !items.isEmpty { return "Nothing is about to expire, but you can pick products from your pantry." }
-        return "Add some products to get recipe ideas."
+        if !forRecipes.isEmpty { return "Cook something with what's about to expire." }
+        if !items.isEmpty { return "Nothing's about to expire. Pick anything from your pantry." }
+        return "Add a few products to get recipe ideas."
     }
 
     private var freshText: LocalizedStringKey {
@@ -88,9 +82,10 @@ struct HomeView: View {
                     }
                 }
 
-                // recipes
-                Section { recipeCard }
+                // recipes (with a header like Expiring soon, so the sections look the same)
+                Section("Recipe ideas") { recipeCard }
             }
+            .listSectionSpacing(24)   // same gap between every section
             .navigationTitle("Home")
             .navigationDestination(for: FoodItem.self) { ItemDetailView(item: $0) }
             .toolbar {
@@ -155,11 +150,6 @@ struct HomeView: View {
     // white card so the scan button stays the most visible thing
     private var recipeCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // no icon, so the text is aligned
-            Text("Recipe ideas")
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-
             Text(recipeCardText)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
