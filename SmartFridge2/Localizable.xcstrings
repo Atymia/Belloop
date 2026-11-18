@@ -298,6 +298,17 @@
         }
       }
     },
+    "Also from your pantry: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anche dalla dispensa: %@"
+          }
+        }
+      }
+    },
     "Ask after the date" : {
       "extractionState" : "manual",
       "localizations" : {

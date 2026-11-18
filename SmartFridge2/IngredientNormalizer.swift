@@ -27,11 +27,11 @@ enum IngredientNormalizer {
     }
 
     // finds the keyword for each item and saves it.
-    // only the 8 most urgent ones, the recipe search doesn't use more
+    // only the most urgent ones (8 by default, the recipe search doesn't use more)
     @MainActor
-    static func resolve(_ items: [FoodItem]) async -> [IngredientInfo] {
+    static func resolve(_ items: [FoodItem], limit: Int = 8) async -> [IngredientInfo] {
         var result: [IngredientInfo] = []
-        for item in items.sorted(by: { $0.daysLeft < $1.daysLeft }).prefix(8) {
+        for item in items.sorted(by: { $0.daysLeft < $1.daysLeft }).prefix(limit) {
             let keyword: String
             if let saved = item.recipeKeyword, !saved.isEmpty, item.recipeKeywordVersion == version {
                 keyword = saved
