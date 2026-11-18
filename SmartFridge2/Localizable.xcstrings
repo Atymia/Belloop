@@ -342,6 +342,17 @@
         }
       }
     },
+    "Can't find it? Move a little farther away so it's in focus, or turn on the flashlight." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non lo trovi? Allontanati un po' così è a fuoco, oppure accendi la torcia."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "extractionState" : "manual",
       "localizations" : {

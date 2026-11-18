@@ -16,25 +16,20 @@ struct ScannerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var hint: ScanHint = .idle
     @State private var torchOn = false
+    // after a few seconds without a date, the hint gives a tip
+    @State private var showTip = false
 
-    // back camera, nil on the simulator
-    private var torch: AVCaptureDevice? {
-        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return nil }
-        return device
-    }
-
-    private func setTorch(_ on: Bool) {
-        guard let torch, (try? torch.lockForConfiguration()) != nil else { return }
-        torch.torchMode = on ? .on : .off
-        torch.unlockForConfiguration()
-    }
+    // false on the simulator and on devices without a flashlight
+    private var hasTorch: Bool { AVCaptureDevice.default(for: .video)?.hasTorch ?? false }
 
     private var title: LocalizedStringKey { mode == .barcode ? "Barcode" : "Expiration date" }
 
     private var hintText: LocalizedStringKey {
         switch (mode, hint) {
         case (.barcode, _):          "Point the camera at the barcode"
-        case (.text, .idle):         "Point the camera at the date. On bottles, tilt them to avoid reflections."
+        case (.text, .idle):
+            showTip ? "Can't find it? Move a little farther away so it's in focus, or turn on the flashlight."
+                    : "Point the camera at the date. On bottles, tilt them to avoid reflections."
         case (.text, .holdSteady):   "Date found — hold steady…"
         case (.text, .chooseOne):    "Several dates found — tap the expiration date"
         }
@@ -45,7 +40,7 @@ struct ScannerSheet: View {
             Group {
                 if DataScannerView.isSupported {
                     ZStack(alignment: .bottom) {
-                        DataScannerView(mode: mode, onResult: onResult, onHint: { hint = $0 })
+                        DataScannerView(mode: mode, torchOn: torchOn, onResult: onResult, onHint: { hint = $0 })
                             .ignoresSafeArea()
 
                         Text(hintText)
@@ -70,17 +65,23 @@ struct ScannerSheet: View {
                     Button("Cancel", role: .cancel) { dismiss() }
                 }
                 // flashlight for bottles and dark packages
-                if mode == .text, torch != nil {
+                if mode == .text, hasTorch {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(torchOn ? "Turn Flashlight Off" : "Turn Flashlight On",
+                        // LocalizedStringKey so the title gets translated
+                        Button(torchOn ? LocalizedStringKey("Turn Flashlight Off") : LocalizedStringKey("Turn Flashlight On"),
                                systemImage: torchOn ? "flashlight.on.fill" : "flashlight.off.fill") {
                             torchOn.toggle()
                         }
                     }
                 }
             }
-            .onChange(of: torchOn) { _, on in setTorch(on) }
-            .onDisappear { if torchOn { setTorch(false) } }
+            // no date for 5 seconds: show the tip (any date found resets it)
+            .task(id: hint) {
+                showTip = false
+                guard mode == .text, hint == .idle else { return }
+                try? await Task.sleep(for: .seconds(5))
+                if !Task.isCancelled { showTip = true }
+            }
         }
     }
 }
@@ -119,6 +120,7 @@ final class DateHighlightView: UIView {
 // MARK: - DataScanner
 struct DataScannerView: UIViewControllerRepresentable {
     let mode: ScannerSheet.Mode
+    var torchOn = false
     let onResult: (String) -> Void
     let onHint: (ScanHint) -> Void
 
@@ -134,12 +136,14 @@ struct DataScannerView: UIViewControllerRepresentable {
             mode == .barcode ? [barcodes] : [.text(), barcodes]
 
         // no default highlight, it would box every word.
-        // I draw boxes only around dates
+        // I draw boxes only around dates.
+        // high frame rate tracking is OFF: a date doesn't need fast tracking,
+        // and the slower camera mode gets along better with the flashlight
         let scanner = DataScannerViewController(
             recognizedDataTypes: types,
             qualityLevel: .accurate,
             recognizesMultipleItems: mode == .text,
-            isHighFrameRateTrackingEnabled: mode == .text,
+            isHighFrameRateTrackingEnabled: false,
             isPinchToZoomEnabled: true,
             isGuidanceEnabled: mode == .barcode,
             isHighlightingEnabled: mode == .barcode
@@ -149,10 +153,19 @@ struct DataScannerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ scanner: DataScannerViewController, context: Context) {
-        if !scanner.isScanning { try? scanner.startScanning() }
+        if !scanner.isScanning {
+            try? scanner.startScanning()
+            // dates are tiny: with 2x zoom you hold the phone farther away, where the camera
+            // can focus (up close the picture is blurry, that's why only the flashlight helped)
+            if mode == .text {
+                scanner.zoomFactor = min(max(2, scanner.minZoomFactor), scanner.maxZoomFactor)
+            }
+        }
+        context.coordinator.setTorch(torchOn)
     }
 
     static func dismantleUIViewController(_ scanner: DataScannerViewController, coordinator: Coordinator) {
+        coordinator.setTorch(false)
         scanner.stopScanning()
     }
 
@@ -175,6 +188,36 @@ struct DataScannerView: UIViewControllerRepresentable {
         private var lockTask: Task<Void, Never>?
 
         init(_ parent: DataScannerView) { self.parent = parent }
+
+        // MARK: Flashlight
+        // Known iPhone problem: the scanner runs on the "virtual" camera (the one that switches
+        // between wide / ultra wide / tele). Turning the light on through a single physical camera
+        // froze the preview. So we ask for the same virtual camera the scanner is using.
+        private var torchApplied = false
+
+        private static var scannerCamera: AVCaptureDevice? {
+            let types: [AVCaptureDevice.DeviceType] = [.builtInTripleCamera, .builtInDualWideCamera,
+                                                        .builtInDualCamera, .builtInWideAngleCamera]
+            for type in types {
+                if let device = AVCaptureDevice.default(type, for: .video, position: .back), device.hasTorch {
+                    return device
+                }
+            }
+            return nil
+        }
+
+        func setTorch(_ on: Bool) {
+            guard on != torchApplied,
+                  let device = Self.scannerCamera, device.isTorchAvailable,
+                  (try? device.lockForConfiguration()) != nil else { return }
+            defer { device.unlockForConfiguration() }
+            if on {
+                try? device.setTorchModeOn(level: AVCaptureDevice.maxAvailableTorchLevel)
+            } else {
+                device.torchMode = .off
+            }
+            torchApplied = on
+        }
 
         // MARK: Delegate
         func dataScanner(_ dataScanner: DataScannerViewController,
