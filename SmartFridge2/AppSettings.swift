@@ -8,7 +8,6 @@ nonisolated enum AppSettings {
         static let reminderDays = "settings.reminderDays"
         static let notificationsOn = "settings.notificationsOn"
         static let askAfterExpiry = "settings.askAfterExpiry"
-        static let appearance = "settings.appearance"
         static let country = "settings.country"
 
         static let profileName = "profile.name"
@@ -41,36 +40,6 @@ nonisolated enum AppSettings {
         return defaultCountry
     }
     static var defaultCountry: String { Locale.current.region?.identifier ?? "US" }
-}
-
-// MARK: - Appearance
-enum Appearance: String, CaseIterable, Identifiable {
-    case system, light, dark
-    var id: Self { self }
-
-    var title: LocalizedStringKey {
-        switch self {
-        case .system: "System"
-        case .light: "Light"
-        case .dark: "Dark"
-        }
-    }
-
-    private var interfaceStyle: UIUserInterfaceStyle {
-        switch self {
-        case .system: .unspecified   // same as the phone
-        case .light: .light
-        case .dark: .dark
-        }
-    }
-
-    // apply to all windows so open sheets change too
-    @MainActor
-    func applyToWindows() {
-        for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
-            for window in scene.windows { window.overrideUserInterfaceStyle = interfaceStyle }
-        }
-    }
 }
 
 // MARK: - Countries

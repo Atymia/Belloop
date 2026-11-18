@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 import Translation
+import AVFoundation
+import NaturalLanguage
 
 // MARK: - Recipe list (tap one to open it)
 struct RecipeSheet: View {
@@ -31,17 +33,13 @@ struct RecipeSheet: View {
     @State private var translationConfig: TranslationSession.Configuration?
     @State private var isTranslating = false
     @State private var translationFailed = false
-    // sweet or savory, nil until the user picks
-    @State private var recipeType: RecipeType?
+    // opens on Savory, the switch at the top changes it
+    @State private var recipeType: RecipeType = .savory
 
-    private var state: LoadState {
-        guard let recipeType, !loading.contains(recipeType), let result = results[recipeType] else { return .loading }
-        return result.state
-    }
+    // while pulling to refresh the old list stays on screen, the spinner is only for the first load
+    private var state: LoadState { results[recipeType]?.state ?? .loading }
 
-    private var unused: [String] { recipeType.flatMap { results[$0]?.unused } ?? [] }
-
-    private var isLoading: Bool { recipeType.map { loading.contains($0) } ?? false }
+    private var unused: [String] { results[recipeType]?.unused ?? [] }
 
     private var noneTitle: LocalizedStringKey {
         switch recipeType {
@@ -51,97 +49,56 @@ struct RecipeSheet: View {
         }
     }
 
-    // for the picker at the top
-    private var typeBinding: Binding<RecipeType> {
-        Binding(get: { recipeType ?? .savory }, set: { recipeType = $0 })
-    }
-
     var body: some View {
         NavigationStack {
             Group {
-                if recipeType == nil {
-                    typeChoice
-                } else {
-                    switch state {
-                    case .loading:
-                        VStack(spacing: 20) {
-                            ProgressView().controlSize(.large)
-                            Text("Finding the best recipes for you…")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    case .results(let recipes):
-                        resultsList(recipes)
-
-                    case .failed(let reason):
-                        failedView(reason)
+                switch state {
+                case .loading:
+                    VStack(spacing: 20) {
+                        ProgressView().controlSize(.large)
+                        Text("Finding the best recipes for you…")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                case .results(let recipes):
+                    resultsList(recipes)
+
+                case .failed(let reason):
+                    failedView(reason)
                 }
             }
-            // after choosing, you can switch here
+            // savory / sweet switch, always at the top
             .safeAreaBar(edge: .top) {
-                if recipeType != nil {
-                    Picker("Recipe type", selection: typeBinding) {
-                        ForEach(RecipeType.choices) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
+                Picker("Recipe type", selection: $recipeType) {
+                    ForEach(RecipeType.choices) { Text($0.title).tag($0) }
                 }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
             }
             .navigationTitle("Recipes")
             .navigationBarTitleDisplayMode(.inline)
-            // X and not checkmark because nothing gets saved here
-            // (the Refresh text is still read by VoiceOver)
+            // X and not checkmark because nothing gets saved here.
+            // no Refresh button: you pull the list down for new recipes
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(role: .close) { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Refresh", systemImage: "arrow.clockwise") { reload() }
-                        .disabled(recipeType == nil || isLoading || isTranslating)
-                }
             }
-            // loads the first time a type is picked. if that type already has a list
+            // loads the first time a type is shown. if that type already has a list
             // (or we're coming back from a recipe) nothing happens
             .task(id: recipeType) {
-                guard let recipeType, results[recipeType] == nil, !loading.contains(recipeType) else { return }
+                guard results[recipeType] == nil, !loading.contains(recipeType) else { return }
                 await load(recipeType)
             }
             .translationTask(translationConfig) { session in
                 await translate(using: session)
             }
         }
-    }
-
-    // MARK: - Sweet or savory?
-    private var typeChoice: some View {
-        VStack(spacing: 24) {
-            Text("What would you like to cook?")
-                .font(.title2.bold())
-                .multilineTextAlignment(.center)
-                .accessibilityAddTraits(.isHeader)
-
-            VStack(spacing: 12) {
-                ForEach(RecipeType.choices) { type in
-                    Button { recipeType = type } label: {
-                        Label(type.title, systemImage: type.symbol)
-                            .font(.title3.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.large)
-                }
-            }
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Empty state
@@ -185,9 +142,11 @@ struct RecipeSheet: View {
     }
 
     // MARK: - Loading
+    // "Try Again" on the error screens: back to the spinner, then load
     private func reload() {
-        guard let recipeType else { return }
-        Task { await load(recipeType) }
+        let type = recipeType
+        results[type] = nil
+        Task { await load(type) }
     }
 
     private func load(_ type: RecipeType) async {
@@ -271,6 +230,8 @@ struct RecipeSheet: View {
                 }
             }
         }
+        // pull down for new recipes (same as the old Refresh button)
+        .refreshable { await load(recipeType) }
         .navigationDestination(for: String.self) { id in
             if let recipe = recipes.first(where: { $0.id == id }) {
                 RecipeDetailView(recipe: recipe)
@@ -350,6 +311,7 @@ private struct RecipeThumbnail: View {
 // MARK: - Recipe detail
 private struct RecipeDetailView: View {
     let recipe: Recipe
+    @State private var reader = RecipeReader()
 
     var body: some View {
         ScrollView {
@@ -387,5 +349,99 @@ private struct RecipeDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationBarTitleDisplayMode(.inline)
+        // reads the recipe out loud, handy when your hands are dirty
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                // LocalizedStringKey on purpose: a ternary of plain strings would skip the translation
+                Button(reader.isSpeaking ? LocalizedStringKey("Stop Reading") : LocalizedStringKey("Read Aloud"),
+                       systemImage: reader.isSpeaking ? "stop.fill" : "speaker.wave.2") {
+                    reader.toggle(recipe)
+                }
+            }
+        }
+        .onDisappear { reader.stop() }
+    }
+}
+
+// MARK: - Read aloud
+// Uses the iPhone's built-in voices (AVSpeechSynthesizer): no AI, no internet, free.
+// The voice matches the language the recipe is written in (translated or still English).
+@MainActor @Observable
+final class RecipeReader: NSObject, AVSpeechSynthesizerDelegate {
+    private(set) var isSpeaking = false
+    @ObservationIgnored private let synthesizer = AVSpeechSynthesizer()
+    @ObservationIgnored private var lastUtterance: ObjectIdentifier?
+
+    override init() {
+        super.init()
+        synthesizer.delegate = self
+    }
+
+    func toggle(_ recipe: Recipe) {
+        isSpeaking ? stop() : read(recipe)
+    }
+
+    func read(_ recipe: Recipe) {
+        stop()
+        let language = Self.language(of: recipe)
+        let voice = Self.voice(for: language)
+
+        // headings in the same language as the recipe, otherwise it sounds weird
+        let sameAsPhone = language == Locale.current.language.languageCode?.identifier
+        let ingredientsTitle = sameAsPhone ? String(localized: "Ingredients") : "Ingredients"
+        let methodTitle = sameAsPhone ? String(localized: "Method") : "Method"
+        let parts = [recipe.title, ingredientsTitle] + recipe.ingredients + [methodTitle] + recipe.steps
+
+        // lower other audio (music, podcasts) while reading
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+        try? session.setActive(true)
+
+        var last: AVSpeechUtterance?
+        for part in parts where !part.isEmpty {
+            let utterance = AVSpeechUtterance(string: part)
+            utterance.voice = voice
+            utterance.postUtteranceDelay = 0.35   // small pause between lines
+            synthesizer.speak(utterance)
+            last = utterance
+        }
+        lastUtterance = last.map(ObjectIdentifier.init)
+        isSpeaking = last != nil
+        UIApplication.shared.isIdleTimerDisabled = isSpeaking   // screen stays on while cooking
+    }
+
+    func stop() {
+        if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
+        finished()
+    }
+
+    private func finished() {
+        guard isSpeaking else { return }
+        isSpeaking = false
+        lastUtterance = nil
+        UIApplication.shared.isIdleTimerDisabled = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        let id = ObjectIdentifier(utterance)
+        Task { @MainActor in
+            if id == self.lastUtterance { self.finished() }   // the last line was read
+        }
+    }
+
+    // MARK: Language and voice
+    // the recipe can be translated or still in English: look at the text itself
+    private static func language(of recipe: Recipe) -> String {
+        let text = ([recipe.title] + recipe.steps).joined(separator: " ")
+        return NLLanguageRecognizer.dominantLanguage(for: text)?.rawValue ?? "en"
+    }
+
+    // best voice for that language, from the phone's region if there is one (it-IT, en-GB…)
+    private static func voice(for language: String) -> AVSpeechSynthesisVoice? {
+        let voices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix(language) }
+        let regional = "\(language)-\(Locale.current.region?.identifier ?? "")"
+        let pool = voices.contains { $0.language == regional } ? voices.filter { $0.language == regional } : voices
+        return pool.max { $0.quality.rawValue < $1.quality.rawValue } ?? AVSpeechSynthesisVoice(language: language)
     }
 }

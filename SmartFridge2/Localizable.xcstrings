@@ -1,57 +1,24 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@ and %@ are about to expire. What shall we cook with them?" : {
+    "%@ expires in %lld days" : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ e %2$@ stanno per scadere. Cosa ci cuciniamo?"
+            "value" : "%1$@ scade tra %2$lld giorni"
           }
         }
       }
     },
-    "%@ expires in %lld days. Want a zero-waste recipe?" : {
+    "%@ expires tomorrow" : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ scade tra %2$lld giorni. Vuoi una ricetta anti-spreco?"
-          }
-        }
-      }
-    },
-    "%@ expires in 2 days. Want a zero-waste recipe?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ scade tra 2 giorni. Vuoi una ricetta anti-spreco?"
-          }
-        }
-      }
-    },
-    "%@ expires tomorrow. Want a zero-waste recipe?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ scade domani. Vuoi una ricetta anti-spreco?"
-          }
-        }
-      }
-    },
-    "%@ is about to expire. What shall we cook with it?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ sta per scadere. Cosa ci cuciniamo?"
+            "value" : "%@ scade domani"
           }
         }
       }
@@ -63,17 +30,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ è già nella dispensa e scade il %2$@. Vuoi aggiungerne un altro?"
-          }
-        }
-      }
-    },
-    "%@, %@ and %lld more are about to expire. What shall we cook with them?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@, %2$@ e altri %3$lld stanno per scadere. Cosa ci cuciniamo?"
           }
         }
       }
@@ -155,6 +111,17 @@
         }
       }
     },
+    "A few things expire soon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alcuni prodotti stanno per scadere"
+          }
+        }
+      }
+    },
     "A real iPhone with camera access is required. You can enter the details by hand." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -173,17 +140,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Informazioni"
-          }
-        }
-      }
-    },
-    "About to expire ⏰" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sta per scadere ⏰"
           }
         }
       }
@@ -210,6 +166,17 @@
         }
       }
     },
+    "Add a few products to get recipe ideas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi qualche prodotto per avere idee per le ricette."
+          }
+        }
+      }
+    },
     "Add Another" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -228,17 +195,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiungi prodotto"
-          }
-        }
-      }
-    },
-    "Add some products to get recipe ideas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi qualche prodotto per ricevere idee di ricette."
           }
         }
       }
@@ -364,13 +320,13 @@
         }
       }
     },
-    "Before the date you get a notification, and the product appears on Home under Expiring soon. The day after, the app asks whether you used it." : {
+    "Before the date you get a reminder, and the product shows up on Home under Expiring soon. The day after, you'll be asked if you used it." : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prima della data ricevi una notifica e il prodotto compare nella Home in In scadenza. Il giorno dopo, l'app ti chiede se l'hai usato."
+            "value" : "Prima della scadenza ricevi un promemoria e il prodotto compare in Home sotto In scadenza. Il giorno dopo ti viene chiesto se l'hai usato."
           }
         }
       }
@@ -496,6 +452,17 @@
         }
       }
     },
+    "Cook something with what's about to expire." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cucina qualcosa con quello che sta per scadere."
+          }
+        }
+      }
+    },
     "Couldn't load recipes" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -536,17 +503,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crea account"
-          }
-        }
-      }
-    },
-    "Dark" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scuro"
           }
         }
       }
@@ -617,6 +573,17 @@
         }
       }
     },
+    "Did you finish %@?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai finito %@?"
+          }
+        }
+      }
+    },
     "Did you use %@?" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -624,6 +591,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hai usato %@?"
+          }
+        }
+      }
+    },
+    "Did you use them, or did they end up in the bin?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Li hai usati o sono finiti nella spazzatura?"
           }
         }
       }
@@ -859,6 +837,17 @@
         }
       }
     },
+    "Have a look before they go to waste." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dai un'occhiata prima che vadano sprecati."
+          }
+        }
+      }
+    },
     "Help" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -925,35 +914,13 @@
         }
       }
     },
-    "It expired yesterday. Let us know, so your pantry stays up to date." : {
+    "It passed its date yesterday." : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "È scaduto ieri. Faccelo sapere, così la dispensa resta aggiornata."
-          }
-        }
-      }
-    },
-    "Language" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lingua"
-          }
-        }
-      }
-    },
-    "Light" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chiaro"
+            "value" : "È scaduto ieri."
           }
         }
       }
@@ -1189,13 +1156,13 @@
         }
       }
     },
-    "Nothing is about to expire, but you can pick products from your pantry." : {
+    "Nothing's about to expire. Pick anything from your pantry." : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Niente in scadenza, ma puoi scegliere i prodotti dalla dispensa."
+            "value" : "Non sta scadendo niente. Scegli quello che vuoi dalla dispensa."
           }
         }
       }
@@ -1224,17 +1191,6 @@
     },
     "openfoodfacts.org" : {
 
-    },
-    "Opens iPhone Settings, where you can choose the language of this app." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apre le Impostazioni di iPhone, dove puoi scegliere la lingua di questa app."
-          }
-        }
-      }
     },
     "Pantry" : {
       "extractionState" : "manual",
@@ -1412,17 +1368,6 @@
         }
       }
     },
-    "Products about to expire are pre-selected. Up to 8 are used, soonest expiring first." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I prodotti in scadenza sono già selezionati. Se ne usano al massimo 8, prima quelli che scadono prima."
-          }
-        }
-      }
-    },
     "Products you used or threw away are removed from your pantry." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1441,6 +1386,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Profilo"
+          }
+        }
+      }
+    },
+    "Read Aloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leggi ad alta voce"
           }
         }
       }
@@ -1478,13 +1434,13 @@
         }
       }
     },
-    "Recipe ideas finds real recipes that use what is about to expire. Tap Refresh for new ones, or pick products from your Pantry." : {
+    "Recipe ideas finds real recipes that use what's about to expire. Pull the list down for new ones, or pick products from your Pantry." : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Idee ricetta trova ricette vere con ciò che sta per scadere. Tocca Aggiorna per vederne altre, o scegli i prodotti dalla Dispensa."
+            "value" : "Idee per le ricette trova ricette vere che usano quello che sta per scadere. Trascina la lista verso il basso per vederne altre, oppure scegli i prodotti dalla Dispensa."
           }
         }
       }
@@ -1544,39 +1500,6 @@
         }
       }
     },
-    "Refresh" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiorna"
-          }
-        }
-      }
-    },
-    "Remove" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rimuovi"
-          }
-        }
-      }
-    },
-    "Remove %@?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rimuovere %@?"
-          }
-        }
-      }
-    },
     "Remove from pantry" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1595,6 +1518,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rimuovi foto o icona"
+          }
+        }
+      }
+    },
+    "Remove Product" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi prodotto"
           }
         }
       }
@@ -1852,6 +1786,17 @@
         }
       }
     },
+    "Some products passed their date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alcuni prodotti sono scaduti"
+          }
+        }
+      }
+    },
     "Something went wrong. Try again." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1907,6 +1852,28 @@
         }
       }
     },
+    "Still have it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce l'ho ancora"
+          }
+        }
+      }
+    },
+    "Stop Reading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi lettura"
+          }
+        }
+      }
+    },
     "Sweet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1914,17 +1881,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dolci"
-          }
-        }
-      }
-    },
-    "System" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sistema"
           }
         }
       }
@@ -1984,30 +1940,19 @@
         }
       }
     },
-    "The reminder arrives at 9:00, and the product appears in Expiring soon. The day after a product expires, the app asks whether you used it." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il promemoria arriva alle 9:00 e il prodotto compare in In scadenza. Il giorno dopo la scadenza, l'app ti chiede se l'hai usato."
-          }
-        }
-      }
-    },
-    "Theme" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tema"
-          }
-        }
-      }
-    },
     "themealdb.com" : {
 
+    },
+    "There's still time to cook something with it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sei ancora in tempo per cucinarci qualcosa."
+          }
+        }
+      }
     },
     "These products are only used in recipes of the other type." : {
       "extractionState" : "manual",
@@ -2038,6 +1983,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questa azione non si può annullare."
+          }
+        }
+      }
+    },
+    "This product will be permanently removed from your pantry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo prodotto verrà rimosso definitivamente dalla dispensa."
+          }
+        }
+      }
+    },
+    "Threw it away" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ho buttato"
           }
         }
       }
@@ -2130,6 +2097,17 @@
         }
       }
     },
+    "Used it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ho usato"
+          }
+        }
+      }
+    },
     "Username" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2152,6 +2130,17 @@
         }
       }
     },
+    "We've picked what's about to expire. Tap to add or remove anything." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbiamo già scelto quello che sta per scadere. Tocca per aggiungere o togliere qualcosa."
+          }
+        }
+      }
+    },
     "Welcome to %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2159,17 +2148,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Benvenuto in %@"
-          }
-        }
-      }
-    },
-    "What would you like to cook?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cosa vuoi cucinare?"
           }
         }
       }
@@ -2192,6 +2170,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sì, l'ho usato"
+          }
+        }
+      }
+    },
+    "You'll get one reminder at 9:00 for everything that's about to expire, and a question the day after something passes its date." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle 9:00 ricevi un solo promemoria per tutto quello che sta per scadere, e una domanda il giorno dopo che qualcosa è scaduto."
           }
         }
       }

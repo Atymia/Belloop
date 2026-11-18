@@ -17,7 +17,7 @@ struct IngredientPickerSheet: View {
                 Section {
                     ForEach(items) { ItemRow(item: $0) }
                 } header: {
-                    Text("Products about to expire are pre-selected. Up to 8 are used, soonest expiring first.")
+                    Text("We've picked what's about to expire. Tap to add or remove anything.")
                 }
             }
             .environment(\.editMode, .constant(.active))   // always show the circles
