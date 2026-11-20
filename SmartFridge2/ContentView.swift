@@ -1,5 +1,7 @@
 import SwiftUI
 import SwiftData
+import CoreData
+import Combine
 
 enum AppTab: Hashable { case home, pantry }
 
@@ -59,6 +61,11 @@ struct ContentView: View {
         // every time the app is opened, rebuild the notifications from what's in the pantry
         .onChange(of: scenePhase, initial: true) {
             if scenePhase == .active { NotificationManager.refresh() }
+        }
+        // a change arrived from iCloud (another device added or removed something)
+        .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
+                    .receive(on: DispatchQueue.main)) { _ in
+            NotificationManager.refresh()
         }
     }
 }

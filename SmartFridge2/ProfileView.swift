@@ -1,13 +1,12 @@
 import SwiftUI
 import PhotosUI
-import AuthenticationServices
+import CloudKit
+import Combine
 
-// screens you can open from Account (so after sign in we can go back easily)
+// screens you can open from Account
 enum ProfileRoute: Hashable {
-    case editProfile, country, settings, signIn, email(EmailMode), howToUse, dataSources
+    case editProfile, country, settings, howToUse, dataSources
 }
-
-enum EmailMode: Hashable { case signUp, signIn }
 
 // MARK: - Avatar (photo, else icon, else initials)
 struct AvatarView: View {
@@ -51,27 +50,22 @@ struct AvatarView: View {
 }
 
 // MARK: - Account
+// the account is the Apple Account already on the iPhone: nothing to sign up for
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage(AppSettings.Key.profileName) private var name = ""
     @AppStorage(AppSettings.Key.profileUsername) private var username = ""
-    @AppStorage(AppSettings.Key.accountProvider) private var provider = ""
-    @AppStorage(AppSettings.Key.accountEmail) private var email = ""
-    @AppStorage(AppSettings.Key.appleUserID) private var appleUserID = ""
     @AppStorage(AppSettings.Key.country) private var country = ""
 
-    @State private var path = NavigationPath()
-    @State private var confirmSignOut = false
-    @State private var confirmDelete = false
-
-    private var isSignedIn: Bool { !provider.isEmpty }
     private var countryCode: String { country.isEmpty ? AppSettings.defaultCountry : country }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack {
             List {
                 header
+
+                ICloudSection()
 
                 Section {
                     NavigationLink(value: ProfileRoute.editProfile) {
@@ -89,28 +83,9 @@ struct ProfileView: View {
                     Text("Your country decides which products appear first when you type a name.")
                 }
 
-                if !isSignedIn {
-                    Section {
-                        NavigationLink(value: ProfileRoute.signIn) {
-                            Label("Sign In or Create Account", systemImage: "person.badge.key")
-                        }
-                    }
-                }
-
                 Section {
                     NavigationLink(value: ProfileRoute.settings) {
                         Label("Settings", systemImage: "gearshape")
-                    }
-                }
-
-                if isSignedIn {
-                    Section {
-                        Button("Sign Out", role: .destructive) { confirmSignOut = true }
-                    }
-                    Section {
-                        Button("Delete Account", role: .destructive) { confirmDelete = true }
-                    } footer: {
-                        Text("Permanently deletes your account and your profile details. Your products stay on this iPhone.")
                     }
                 }
             }
@@ -126,31 +101,9 @@ struct ProfileView: View {
                 case .editProfile: EditProfileView()
                 case .country: CountryPickerView(selection: $country)
                 case .settings: SettingsView()
-                case .signIn: SignInView()
-                case .email(let mode): EmailAuthView(mode: mode)
                 case .howToUse: HowToUseView()
                 case .dataSources: DataSourcesView()
                 }
-            }
-            // after login go back to Account
-            .onChange(of: provider) { _, newValue in
-                if !newValue.isEmpty { path = NavigationPath() }
-            }
-            .confirmationDialog("Sign out of your account?", isPresented: $confirmSignOut, titleVisibility: .visible) {
-                Button("Sign Out", role: .destructive) { Task { await Accounts.service.signOut() } }
-            } message: {
-                Text("Your products stay on this iPhone.")
-            }
-            .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
-                Button("Delete Account", role: .destructive) { Task { try? await Accounts.service.deleteAccount() } }
-            } message: {
-                Text("This can't be undone.")
-            }
-            // if the user revoked Sign in with Apple, log out here too
-            .task {
-                guard provider == "apple", !appleUserID.isEmpty else { return }
-                let state = try? await ASAuthorizationAppleIDProvider().credentialState(forUserID: appleUserID)
-                if state == .revoked { await Accounts.service.signOut() }
             }
         }
     }
@@ -165,13 +118,56 @@ struct ProfileView: View {
                 if !username.isEmpty {
                     Text(verbatim: "@\(username)").foregroundStyle(.secondary)
                 }
-                if isSignedIn && !email.isEmpty {
-                    Text(verbatim: email).font(.subheadline).foregroundStyle(.secondary)
-                }
             }
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
         }
+    }
+}
+
+// MARK: - iCloud
+// shows if the pantry is syncing. it only asks iCloud, no data leaves the app
+private struct ICloudSection: View {
+    @State private var status: CKAccountStatus?
+
+    var body: some View {
+        Section {
+            LabeledContent {
+                Text(statusText)
+            } label: {
+                Label("iCloud", systemImage: status == .available ? "checkmark.icloud" : "icloud.slash")
+            }
+        } footer: {
+            if let footerText { Text(footerText) }
+        }
+        .task { await refresh() }
+        // the user can sign in or out of iCloud while the app is open
+        .onReceive(NotificationCenter.default.publisher(for: .CKAccountChanged)
+                    .receive(on: DispatchQueue.main)) { _ in
+            Task { await refresh() }
+        }
+    }
+
+    private var statusText: LocalizedStringKey {
+        switch status {
+        case nil: "Checking…"
+        case .some(.available): "On"
+        case .some(.noAccount): "Off"
+        default: "Not available"
+        }
+    }
+
+    private var footerText: LocalizedStringKey? {
+        switch status {
+        case nil: nil
+        case .some(.available): "Your pantry is saved in your iCloud and stays the same on all your devices. Only you can see it."
+        case .some(.noAccount): "Sign in to iCloud in the Settings app to keep your pantry on all your devices. Until then, it stays on this iPhone."
+        default: "iCloud isn't available right now. Your pantry stays on this iPhone and syncs when iCloud is back."
+        }
+    }
+
+    private func refresh() async {
+        status = (try? await CKContainer(identifier: AppModel.cloudContainerID).accountStatus()) ?? .couldNotDetermine
     }
 }
 
@@ -303,184 +299,6 @@ private struct IconPickerSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
-    }
-}
-
-// MARK: - Sign in
-struct SignInView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var errorText: String?
-
-    private var appName: String {
-        (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
-            ?? (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String)
-            ?? ""
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                Image(systemName: "refrigerator.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.white)
-                    .frame(width: 96, height: 96)
-                    .background(.tint, in: .rect(cornerRadius: 22))
-                    .accessibilityHidden(true)
-
-                VStack(spacing: 8) {
-                    Text("Welcome to \(appName)")
-                        .font(.title.bold())
-                        .multilineTextAlignment(.center)
-                    Text("Sign in to keep your products in sync and share them with the people you live with.")
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-
-                VStack(spacing: 12) {
-                    // needs the Sign in with Apple capability (paid account)
-                    SignInWithAppleButton(.signIn) { request in
-                        request.requestedScopes = [.fullName, .email]
-                    } onCompletion: { result in
-                        handleApple(result)
-                    }
-                    .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                    .frame(height: 50)
-                    .clipShape(.capsule)
-
-                    NavigationLink(value: ProfileRoute.email(.signUp)) {
-                        Label("Continue with Email", systemImage: "envelope")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.large)
-                }
-
-                if let errorText {
-                    Text(errorText).font(.footnote).foregroundStyle(.red)
-                }
-
-                Text("By continuing, you agree to the Terms of Service and Privacy Policy.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding()
-        }
-        .navigationTitle("Sign In")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func handleApple(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .success(let authorization):
-            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
-            // copy the values before the Task
-            let userID = credential.user
-            let email = credential.email
-            let name = credential.fullName.map { PersonNameComponentsFormatter.localizedString(from: $0, style: .default) }
-            Task { try? await Accounts.service.signInWithApple(userID: userID, email: email, name: name) }
-        case .failure(let error):
-            if (error as? ASAuthorizationError)?.code == .canceled { return }
-            errorText = String(localized: "Sign in with Apple didn't work. Try again.")
-        }
-    }
-}
-
-// MARK: - Email
-struct EmailAuthView: View {
-    @State private var mode: EmailMode
-    @State private var name = ""
-    @State private var email = ""
-    @State private var password = ""
-    @State private var isWorking = false
-    @State private var errorText: String?
-
-    init(mode: EmailMode) { _mode = State(initialValue: mode) }
-
-    private var emailIsValid: Bool {
-        let parts = email.trimmingCharacters(in: .whitespaces).split(separator: "@")
-        return parts.count == 2 && parts[1].contains(".") && !parts[0].isEmpty
-    }
-    private var canSubmit: Bool {
-        emailIsValid && password.count >= 8
-            && (mode == .signIn || !name.trimmingCharacters(in: .whitespaces).isEmpty)
-    }
-
-    // LocalizedStringKey otherwise the translation doesn't work with the ternary
-    private var title: LocalizedStringKey { mode == .signUp ? "Sign Up" : "Sign In" }
-    private var sectionTitle: LocalizedStringKey { mode == .signUp ? "Your details" : "Your account" }
-    private var submitTitle: LocalizedStringKey { mode == .signUp ? "Create Account" : "Sign In" }
-    private var switchTitle: LocalizedStringKey {
-        mode == .signUp ? "Already have an account? Sign In" : "New here? Create an account"
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                if mode == .signUp {
-                    TextField("Name", text: $name)
-                        .textContentType(.name)
-                }
-                TextField("Email", text: $email, prompt: Text(verbatim: "name@example.com"))
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                SecureField("Password", text: $password, prompt: Text("At least 8 characters"))
-                    .textContentType(mode == .signUp ? UITextContentType.newPassword : UITextContentType.password)
-            } header: {
-                Text(sectionTitle)
-            } footer: {
-                if let errorText { Text(errorText).foregroundStyle(.red) }
-            }
-
-            Section {
-                Button(action: submit) {
-                    Group {
-                        if isWorking { ProgressView() } else { Text(submitTitle) }
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glassProminent)
-                .controlSize(.large)
-                .disabled(!canSubmit || isWorking)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-            }
-
-            Section {
-                Button(switchTitle) {
-                    mode = (mode == .signUp) ? .signIn : .signUp
-                    errorText = nil
-                }
-                .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
-            }
-        }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func submit() {
-        isWorking = true
-        errorText = nil
-        let name = name.trimmingCharacters(in: .whitespaces)
-        let email = email.trimmingCharacters(in: .whitespaces).lowercased()
-        let password = password
-        let mode = mode
-        Task {
-            do {
-                if mode == .signUp {
-                    try await Accounts.service.signUp(name: name, email: email, password: password)
-                } else {
-                    try await Accounts.service.signIn(email: email, password: password)
-                }
-            } catch {
-                errorText = String(localized: "Something went wrong. Try again.")
-            }
-            isWorking = false
-        }
     }
 }
 

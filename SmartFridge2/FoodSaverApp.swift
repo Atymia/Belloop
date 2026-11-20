@@ -17,11 +17,25 @@ struct FoodSaverApp: App {
 
 @MainActor
 enum AppModel {
+    // the CloudKit container (Signing & Capabilities → iCloud)
+    static let cloudContainerID = "iCloud.com.fraxexp.belloop"
+
     static let container: ModelContainer = {
+        // the pantry goes in the user's private iCloud database:
+        // only they can see it and it's the same on all their devices.
+        // without an iCloud account it still works, just on this iPhone
+        let cloud = ModelConfiguration(cloudKitDatabase: .private(cloudContainerID))
         do {
-            return try ModelContainer(for: FoodItem.self)
+            return try ModelContainer(for: FoodItem.self, configurations: cloud)
         } catch {
-            fatalError("Could not open the SwiftData store: \(error)")
+            // if iCloud can't be set up, don't crash: same store, local only
+            print("iCloud store not available, using local only: \(error)")
+            do {
+                return try ModelContainer(for: FoodItem.self,
+                                          configurations: ModelConfiguration(cloudKitDatabase: .none))
+            } catch {
+                fatalError("Could not open the SwiftData store: \(error)")
+            }
         }
     }()
 }

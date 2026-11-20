@@ -15,10 +15,6 @@ nonisolated enum AppSettings {
         static let profileIcon = "profile.icon"
         static let avatarVersion = "profile.avatarVersion"   // changes when the photo changes so the avatar refreshes
 
-        static let accountProvider = "account.provider"   // empty = not signed in
-        static let accountEmail = "account.email"
-        static let appleUserID = "account.appleUserID"
-
         static let usedCount = "stats.used"   // for a future stats screen
         static let thrownCount = "stats.thrown"
     }
@@ -89,66 +85,5 @@ enum AvatarStore {
     private static func bumpVersion() {
         let key = AppSettings.Key.avatarVersion
         UserDefaults.standard.set(UserDefaults.standard.integer(forKey: key) + 1, forKey: key)
-    }
-}
-
-// MARK: - Accounts
-// the views only know this protocol. for now it's a fake local login,
-// later we can add Firebase or something else without touching the views
-protocol AuthService: Sendable {
-    func signUp(name: String, email: String, password: String) async throws
-    func signIn(email: String, password: String) async throws
-    func signInWithApple(userID: String, email: String?, name: String?) async throws
-    func signOut() async
-    func deleteAccount() async throws
-}
-
-// not called Auth because Firebase already uses that name
-enum Accounts {
-    static let service: any AuthService = LocalDemoAuthService()
-}
-
-// TODO: demo only! it just saves the email, no password check.
-// replace before release
-struct LocalDemoAuthService: AuthService {
-    private var defaults: UserDefaults { .standard }
-
-    func signUp(name: String, email: String, password: String) async throws {
-        if defaults.string(forKey: AppSettings.Key.profileName)?.isEmpty ?? true {
-            defaults.set(name, forKey: AppSettings.Key.profileName)
-        }
-        finish(provider: "email", email: email)
-    }
-
-    func signIn(email: String, password: String) async throws {
-        finish(provider: "email", email: email)
-    }
-
-    func signInWithApple(userID: String, email: String?, name: String?) async throws {
-        defaults.set(userID, forKey: AppSettings.Key.appleUserID)
-        // apple gives name/email only the first time, so don't overwrite them
-        if let name, !name.isEmpty, defaults.string(forKey: AppSettings.Key.profileName)?.isEmpty ?? true {
-            defaults.set(name, forKey: AppSettings.Key.profileName)
-        }
-        finish(provider: "apple", email: email ?? defaults.string(forKey: AppSettings.Key.accountEmail) ?? "")
-    }
-
-    func signOut() async {
-        defaults.set("", forKey: AppSettings.Key.accountProvider)
-        defaults.set("", forKey: AppSettings.Key.accountEmail)
-    }
-
-    func deleteAccount() async throws {
-        await signOut()
-        defaults.removeObject(forKey: AppSettings.Key.appleUserID)
-        defaults.removeObject(forKey: AppSettings.Key.profileName)
-        defaults.removeObject(forKey: AppSettings.Key.profileUsername)
-        defaults.removeObject(forKey: AppSettings.Key.profileIcon)
-        AvatarStore.remove()
-    }
-
-    private func finish(provider: String, email: String) {
-        defaults.set(email, forKey: AppSettings.Key.accountEmail)
-        defaults.set(provider, forKey: AppSettings.Key.accountProvider)
     }
 }
