@@ -1,4 +1,4 @@
-# Yumsy
+# Belloop
 
 An iOS app that helps you waste less food.
 Scan a product's barcode and expiration date, get a reminder before it expires,
