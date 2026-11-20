@@ -262,7 +262,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartFridge2/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Yumsy;
+				INFOPLIST_KEY_CFBundleDisplayName = Belloop;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Serve per scansionar ei prodotti";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -300,7 +300,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartFridge2/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Yumsy;
+				INFOPLIST_KEY_CFBundleDisplayName = Belloop;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Serve per scansionar ei prodotti";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
