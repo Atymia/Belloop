@@ -375,6 +375,16 @@
         }
       }
     },
+    "Checking…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica…"
+          }
+        }
+      }
+    },
     "Choose a photo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -914,6 +924,19 @@
         }
       }
     },
+    "iCloud" : {
+
+    },
+    "iCloud isn't available right now. Your pantry stays on this iPhone and syncs when iCloud is back." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud non è disponibile al momento. La dispensa resta su questo iPhone e si sincronizza quando iCloud torna disponibile."
+          }
+        }
+      }
+    },
     "Ingredients" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1134,6 +1157,16 @@
         }
       }
     },
+    "Not available" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non disponibile"
+          }
+        }
+      }
+    },
     "Nothing expires in the next %lld days." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1185,6 +1218,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifiche"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disattivato"
+          }
+        }
+      }
+    },
+    "On" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attivo"
           }
         }
       }
@@ -1753,6 +1806,16 @@
         }
       }
     },
+    "Sign in to iCloud in the Settings app to keep your pantry on all your devices. Until then, it stays on this iPhone." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi a iCloud dall'app Impostazioni per avere la dispensa su tutti i tuoi dispositivi. Fino ad allora resta su questo iPhone."
+          }
+        }
+      }
+    },
     "Sign in to keep your products in sync and share them with the people you live with." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2258,6 +2321,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo nome"
+          }
+        }
+      }
+    },
+    "Your pantry is saved in your iCloud and stays the same on all your devices. Only you can see it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua dispensa è salvata nel tuo iCloud ed è uguale su tutti i tuoi dispositivi. Solo tu puoi vederla."
           }
         }
       }
