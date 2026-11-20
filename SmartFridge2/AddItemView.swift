@@ -94,10 +94,7 @@ struct AddItemView: View {
                 }
 
                 Section("Details") {
-                    HStack {
-                        TextField("Product name", text: $name)
-                        if isSearching { ProgressView() }
-                    }
+                    TextField("Product name", text: $name)
 
                     // suggestions right below the text field, like a search bar
                     ForEach(localMatches) { item in
@@ -133,6 +130,15 @@ struct AddItemView: View {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // products still coming: say it, so it doesn't look like there are none
+                    if isSearching && suggestions.isEmpty && searchNote == nil {
+                        HStack(spacing: 12) {
+                            ProgressView()
+                            Text("Searching products…")
+                                .foregroundStyle(.secondary)
                         }
                     }
 
@@ -173,6 +179,11 @@ struct AddItemView: View {
                 case .barcode:
                     ScannerSheet(mode: .barcode) { code in
                         scanKind = nil
+                        // meat, fish, deli: the label is printed by the store, no database knows it
+                        guard !Self.isStoreLabel(code) else {
+                            message = String(localized: "This is a label printed by the store (meat, fish, deli counter), so no database knows it. Type the name, then scan the date on the label.")
+                            return
+                        }
                         barcode = code
                         // if we already have this barcode, ask now before filling everything
                         if !allowDuplicate, let match = existingMatch(barcode: code, name: "") {
@@ -277,6 +288,21 @@ struct AddItemView: View {
     }
 
     // MARK: - Open Food Facts
+    // Barcodes starting with 2 are "in-store" codes (GS1 prefixes 20-29): the supermarket prints them
+    // on things it weighs and packs itself, and they hold its own item number + weight or price.
+    // They aren't real product codes, so they're never in Open Food Facts (and the same code can be
+    // a different product tomorrow, so we don't save it either).
+    // 13 digits starting with 02 = the American version of the same thing (UPC number system 2).
+    private static func isStoreLabel(_ code: String) -> Bool {
+        guard code.allSatisfy(\.isNumber) else { return false }
+        switch code.count {
+        case 13: return code.hasPrefix("2") || code.hasPrefix("02")
+        case 8: return code.hasPrefix("2")
+        case 12: return code.hasPrefix("2")
+        default: return false
+        }
+    }
+
     private func lookup(_ code: String) async {
         isWorking = true
         defer { isWorking = false }
