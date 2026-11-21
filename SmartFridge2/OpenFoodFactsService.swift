@@ -62,39 +62,6 @@ enum OpenFoodFactsService {
         return parse(dict, lang: lang, fallbackCode: barcode)
     }
 
-    // MARK: Generic foods ("Burro", "Gamberi")
-    // OFF has a list of ingredients in many languages. results that start with
-    // the text come first. useful for fresh food with no barcode
-    static func foodSuggestions(_ query: String, limit: Int = 4) async throws -> [String] {
-        let text = query.trimmingCharacters(in: .whitespaces)
-        guard text.count >= 2 else { return [] }
-        let key = "food:" + fold(text)
-        if let hit = await searchGuard.cachedNames(key) { return hit }
-
-        guard var comps = URLComponents(string: "https://world.openfoodfacts.org/api/v3/taxonomy_suggestions") else { return [] }
-        comps.queryItems = [
-            URLQueryItem(name: "tagtype", value: "ingredients"),
-            URLQueryItem(name: "lc", value: language),
-            URLQueryItem(name: "cc", value: AppSettings.countryCode.lowercased()),
-            URLQueryItem(name: "string", value: text),
-            URLQueryItem(name: "limit", value: String(limit))
-        ]
-        guard let url = comps.url else { return [] }
-
-        let data = try await get(url)
-        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let names = ((root?["suggestions"] as? [String]) ?? [])
-            .filter { !isAdditive($0) }   // E155 & co. are on labels, but nobody keeps them in the pantry
-            .map { $0.prefix(1).uppercased() + $0.dropFirst() }   // capitalize
-        await searchGuard.storeNames(names, for: key)
-        return names
-    }
-
-    // "E155", "e 322", "E471a"...
-    private static func isAdditive(_ name: String) -> Bool {
-        name.range(of: #"^[eE] ?\d{3,4}[a-zA-Z]?$"#, options: .regularExpression) != nil
-    }
-
     // MARK: Text search (old endpoint, v2 doesn't have it)
     // the server searches everywhere in the product, so "burro" was giving
     // chocolate (cocoa butter lol). so I filter: every word has to be
@@ -144,8 +111,10 @@ enum OpenFoodFactsService {
         let data: Data
         do {
             data = try await get(url)
-        } catch let error as URLError where error.code == .timedOut {
-            // the search server is often slow the first time, then it's fast: try once more
+        } catch let error as URLError where [.timedOut, .badServerResponse, .networkConnectionLost].contains(error.code) {
+            // the search server is often slow or busy (timeout or 5xx), and the next try usually works:
+            // wait a second and try once more before telling the user
+            try await Task.sleep(for: .seconds(1))
             try await waitForSlot()
             data = try await get(url)
         }
@@ -200,13 +169,10 @@ enum OpenFoodFactsService {
 
     private actor SearchGuard {
         private var cache: [String: [OFFProduct]] = [:]
-        private var names: [String: [String]] = [:]
         private var requests: [Date] = []
 
         func cached(_ key: String) -> [OFFProduct]? { cache[key] }
         func store(_ value: [OFFProduct], for key: String) { cache[key] = value }
-        func cachedNames(_ key: String) -> [String]? { names[key] }
-        func storeNames(_ value: [String], for key: String) { names[key] = value }
 
         // max ~10 searches/min, I keep it a bit lower.
         // returns 0 if we can go now (and counts it), otherwise how many seconds to wait
