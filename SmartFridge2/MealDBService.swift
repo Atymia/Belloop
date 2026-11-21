@@ -213,7 +213,8 @@ enum IngredientMatcher {
     }
 
     // simple plural -> singular (eggs, tomatoes, berries)
-    private static func stem(_ word: String) -> String {
+    // nonisolated: only string work, so it can run anywhere
+    nonisolated private static func stem(_ word: String) -> String {
         if word.hasSuffix("ies"), word.count > 4 { return String(word.dropLast(3)) + "y" }
         if word.hasSuffix("oes") { return String(word.dropLast(2)) }
         if word.hasSuffix("s"), !word.hasSuffix("ss") { return String(word.dropLast()) }
@@ -290,8 +291,10 @@ enum MealDBService {
 
         // 2. one request per ingredient, all at the same time (free key = 1 ingredient per request).
         // nil = request failed, [] = no recipes
+        // the keys are copied first: async let runs at the same time, so it can't read a var that may change
+        let pantryKeys = Array(pantryGroups.keys)
         async let selectedAnswers = fetch(lookups)
-        async let pantryAnswers = fetchPantry(Array(pantryGroups.keys))
+        async let pantryAnswers = fetchPantry(pantryKeys)
         let answers = await selectedAnswers
         let pantryLists = await pantryAnswers
 
@@ -403,9 +406,10 @@ enum MealDBService {
         var category: String? = nil
     }
 
-    private static let pastaCategory = "Pasta"
+    // nonisolated: plain constants, read inside the parallel requests
+    nonisolated private static let pastaCategory = "Pasta"
     // pantry key for "any pasta"
-    private static let pastaKey = "category:Pasta"
+    nonisolated private static let pastaKey = "category:Pasta"
 
     private static func fetch(_ lookups: [Lookup]) async -> [(Int, [MealSummary]?)] {
         await withTaskGroup(of: (Int, [MealSummary]?).self, returning: [(Int, [MealSummary]?)].self) { group in
@@ -461,7 +465,8 @@ enum MealDBService {
     }
 
     // true if one of the keys is in the recipe's ingredients or title (English text, before translation)
-    private static func uses(_ recipe: Recipe, any keys: Set<String>) -> Bool {
+    // nonisolated: it only reads text, and it's called inside the parallel downloads
+    nonisolated private static func uses(_ recipe: Recipe, any keys: Set<String>) -> Bool {
         let ingredients = recipe.ingredients.joined(separator: " | ").lowercased()
         let title = recipe.title.lowercased()
         return keys.contains { key in
