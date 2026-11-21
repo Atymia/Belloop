@@ -179,6 +179,23 @@ enum IngredientMatcher {
         return entries.filter { key.isSubset(of: $0.tokens) }.min(by: { $0.tokens.count < $1.tokens.count })?.name
     }
 
+    // MARK: Pasta
+    // In TheMealDB every pasta shape is its own ingredient (Rigatoni, Penne Rigate, Spaghetti...)
+    // with only a few recipes each, so "Rigatoni De Cecco" found nothing savory.
+    // But a carbonara works with rigatoni or bucatini, so pasta looks at TheMealDB's whole
+    // "Pasta" category. Both sides come from the databases, no word lists in the code:
+    // Open Food Facts puts every pasta product in "Pastas" (pasta sauces are in another category)
+    static func isPasta(_ info: IngredientInfo) -> Bool {
+        info.categories.contains("pastas")
+    }
+
+    // same words only ("rigatoni" -> "Rigatoni"), nothing looser
+    static func exactMatch(for keyword: String, in catalog: [String]) -> String? {
+        let key = Set(orderedTokens(keyword))
+        guard !key.isEmpty else { return nil }
+        return catalog.first { Set(orderedTokens($0)) == key }
+    }
+
     // if it's not an ingredient, maybe we can find it in recipe titles
     static func titleTerm(keyword: String) -> String? {
         // only one word like pesto or tahini: two words matched random titles
@@ -237,7 +254,14 @@ enum MealDBService {
         var pending: [Lookup] = []
         var unused: [String] = []
         for info in ingredients.sorted(by: { $0.weight > $1.weight }).prefix(8) {
-            if let match = IngredientMatcher.catalogName(for: info, in: catalog) {
+            if IngredientMatcher.isPasta(info) {
+                // the whole Pasta category, and the recipe must have some kind of pasta in it
+                pending.append(Lookup(infos: [info], category: pastaCategory))
+                // the exact shape too, it can find recipes filed under Beef or Seafood
+                if let shape = IngredientMatcher.exactMatch(for: info.keyword, in: catalog) {
+                    groups[shape, default: []].append(info)
+                }
+            } else if let match = IngredientMatcher.catalogName(for: info, in: catalog) {
                 groups[match, default: []].append(info)
             } else if let term = IngredientMatcher.titleTerm(keyword: info.keyword) {
                 pending.append(Lookup(infos: [info], ingredient: nil, title: term))
@@ -253,7 +277,12 @@ enum MealDBService {
         // the rest of the pantry: only products that are real TheMealDB ingredients,
         // the most urgent first, max 12 so we don't send too many requests
         var pantryGroups: [String: [String]] = [:]   // ingredient -> product names
+        let choosingPasta = lookups.contains { $0.category == pastaCategory }
         for info in pantry.sorted(by: { $0.weight > $1.weight }) {
+            if IngredientMatcher.isPasta(info) {
+                if !choosingPasta { pantryGroups[pastaKey, default: []].append(info.name) }
+                continue
+            }
             guard let match = IngredientMatcher.catalogName(for: info, in: catalog), groups[match] == nil else { continue }
             guard pantryGroups[match] != nil || pantryGroups.count < 12 else { continue }
             pantryGroups[match, default: []].append(info.name)
@@ -275,22 +304,33 @@ enum MealDBService {
         // 3. score
         var scored: [String: Scored] = [:]
         var failedRequests = 0
+        // a product can have two searches (Pasta + Rigatoni): it's unused only if both found nothing
+        var answered: Set<String> = []
+        var found: Set<String> = []
         for (index, meals) in answers {
             let lookup = lookups[index]
             guard let meals else { failedRequests += 1; continue }
-            if meals.isEmpty { unused.append(contentsOf: lookup.infos.map(\.name)) }
+            answered.formUnion(lookup.infos.map(\.name))
+            if !meals.isEmpty { found.formUnion(lookup.infos.map(\.name)) }
             for meal in meals {
                 var entry = scored[meal.idMeal, default: Scored()]
-                for info in lookup.infos {
+                // once per product, even if two searches found the same recipe (Pasta + Rigatoni)
+                for info in lookup.infos where !entry.used.contains(info.name) {
                     entry.score += info.weight
                     entry.used.insert(info.name)
                 }
-                let key = lookup.ingredient ?? lookup.title ?? ""
+                let key = lookup.ingredient ?? lookup.title ?? lookup.category ?? ""
                 entry.have.insert(key)
-                entry.chosenKeys.insert(key)
+                if let category = lookup.category {
+                    entry.chosenCategories.insert(category)
+                } else {
+                    entry.chosenKeys.insert(key)
+                    entry.exact = true   // TheMealDB lists the product itself (Rigatoni), not just its category
+                }
                 scored[meal.idMeal] = entry
             }
         }
+        unused.append(contentsOf: answered.subtracting(found).sorted())
         for id in scored.keys {
             guard let hits = pantryHits[id] else { continue }
             scored[id]?.have.formUnion(hits)
@@ -314,10 +354,15 @@ enum MealDBService {
 
         // 4. random pick, but higher score = more chances. so Refresh is always different.
         // take 3x so mix() can drop the complicated ones. old recipes only if there aren't enough new ones
+        // recipes with the exact product (Rigatoni) are picked first, then the rest of the category (Pasta)
         let wanted = limit * 3
-        var picked = weightedSample(all.filter { !shown.contains($0.id) }, count: wanted)
+        func pick(_ pool: [Candidate], count: Int) -> [Candidate] {
+            let exact = weightedSample(pool.filter(\.scored.exact), count: count)
+            return exact + weightedSample(pool.filter { !$0.scored.exact }, count: count - exact.count)
+        }
+        var picked = pick(all.filter { !shown.contains($0.id) }, count: wanted)
         if picked.count < limit {
-            picked += weightedSample(all.filter { shown.contains($0.id) }, count: wanted - picked.count)
+            picked += pick(all.filter { shown.contains($0.id) }, count: wanted - picked.count)
         }
         let candidates = picked
 
@@ -329,6 +374,8 @@ enum MealDBService {
                                                          pantry: scored.pantry.sorted(), haveCount: scored.have.count)
                     else { return nil }
                     // double check: the recipe really has the chosen product in it
+                    // a recipe from the Pasta category is a pasta dish, TheMealDB says so
+                    if let category = recipe.category, scored.chosenCategories.contains(category) { return recipe }
                     return uses(recipe, any: scored.chosenKeys) ? recipe : nil
                 }
             }
@@ -339,7 +386,8 @@ enum MealDBService {
 
         // 5. mix and sort
         let matching = details.filter { type.matches(category: $0.category) }
-        let recipes = mix(matching, scores: finalScores.mapValues(\.score), limit: limit)
+        let exactIDs = Set(finalScores.filter { $0.value.exact }.keys)
+        let recipes = mix(matching, scores: finalScores.mapValues(\.score), exact: exactIDs, limit: limit)
         guard !recipes.isEmpty else {
             return RecipeSearchResult(unusedProducts: unused,
                                       emptyReason: details.isEmpty ? .network : .noneOfType)
@@ -350,9 +398,14 @@ enum MealDBService {
     // search by ingredient, or by title if that's all we have
     private struct Lookup: Sendable {
         let infos: [IngredientInfo]
-        let ingredient: String?
-        let title: String?
+        var ingredient: String? = nil
+        var title: String? = nil
+        var category: String? = nil
     }
+
+    private static let pastaCategory = "Pasta"
+    // pantry key for "any pasta"
+    private static let pastaKey = "category:Pasta"
 
     private static func fetch(_ lookups: [Lookup]) async -> [(Int, [MealSummary]?)] {
         await withTaskGroup(of: (Int, [MealSummary]?).self, returning: [(Int, [MealSummary]?)].self) { group in
@@ -363,6 +416,9 @@ enum MealDBService {
                     }
                     if let title = lookup.title {
                         return (index, try? await search(title: title))
+                    }
+                    if let category = lookup.category {
+                        return (index, try? await search(category: category))
                     }
                     return (index, [])
                 }
@@ -378,7 +434,12 @@ enum MealDBService {
         await withTaskGroup(of: (String, Set<String>).self, returning: [String: Set<String>].self) { group in
             for ingredient in ingredients {
                 group.addTask {
-                    let meals = (try? await search(ingredient: ingredient)) ?? []
+                    let meals: [MealSummary]
+                    if ingredient == pastaKey {
+                        meals = (try? await search(category: pastaCategory)) ?? []
+                    } else {
+                        meals = (try? await search(ingredient: ingredient)) ?? []
+                    }
                     return (ingredient, Set(meals.map(\.idMeal)))
                 }
             }
@@ -395,6 +456,8 @@ enum MealDBService {
         var pantry: Set<String> = []   // other pantry products it uses
         var have: Set<String> = []     // its ingredients the user already has
         var chosenKeys: Set<String> = []   // the ingredient names (or title words) it was found with
+        var chosenCategories: Set<String> = []   // or the TheMealDB category (Pasta)
+        var exact = false   // found by the product itself, these go first
     }
 
     // true if one of the keys is in the recipe's ingredients or title (English text, before translation)
@@ -426,11 +489,14 @@ enum MealDBService {
     // ranking: chosen products matter most, then other pantry products,
     // and every ingredient to buy costs a point. elaborate recipes only if nothing else is left.
     // max 2 per cuisine so the list isn't all Italian
-    private static func mix(_ recipes: [Recipe], scores: [String: Int], limit: Int) -> [Recipe] {
+    private static func mix(_ recipes: [Recipe], scores: [String: Int], exact: Set<String>, limit: Int) -> [Recipe] {
         func fit(_ recipe: Recipe) -> Int {
             5 * (scores[recipe.id] ?? 0) + 2 * recipe.pantryProducts.count - recipe.missingCount
         }
         func better(_ a: Recipe, _ b: Recipe) -> Bool {
+            // recipes with the exact product on top, then the others (any pasta)
+            let ea = exact.contains(a.id), eb = exact.contains(b.id)
+            if ea != eb { return ea }
             let fa = fit(a), fb = fit(b)
             if fa != fb { return fa > fb }
             if a.complexity != b.complexity { return a.complexity < b.complexity }   // then easier
@@ -465,6 +531,19 @@ enum MealDBService {
         // when there are no results the API returns something weird, so just empty
         let meals = (try? JSONDecoder().decode(FilterResponse.self, from: data))?.meals ?? []
         await MealDBCatalog.shared.store(meals, for: formatted)
+        return meals
+    }
+
+    // all the recipes of a category, e.g. Pasta (saved like the ingredients)
+    static func search(category: String) async throws -> [MealSummary] {
+        let cacheKey = "category:" + category.lowercased()
+        if let saved = await MealDBCatalog.shared.recipes(with: cacheKey) { return saved }
+        guard var comps = URLComponents(string: "\(base)/filter.php") else { return [] }
+        comps.queryItems = [URLQueryItem(name: "c", value: category)]
+        guard let url = comps.url else { return [] }
+        let data = try await fetch(url)
+        let meals = (try? JSONDecoder().decode(FilterResponse.self, from: data))?.meals ?? []
+        await MealDBCatalog.shared.store(meals, for: cacheKey)
         return meals
     }
 

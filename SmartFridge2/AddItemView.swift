@@ -37,8 +37,6 @@ struct AddItemView: View {
 
     // suggestions while typing
     @State private var suggestions: [OFFProduct] = []
-    // generic foods from the OFF ingredient list, like "Burro" or "Gamberi"
-    @State private var foodSuggestions: [String] = []
     @State private var suggestionTask: Task<Void, Never>?
     @State private var isSearching = false
     @State private var searchNote: String?
@@ -54,12 +52,6 @@ struct AddItemView: View {
             .filter { seen.insert($0.name.lowercased()).inserted }
             .prefix(3)
             .map { $0 }
-    }
-
-    // remove foods we're already suggesting from the history
-    private var foodMatches: [String] {
-        let alreadyListed = Set(localMatches.map { $0.name.lowercased() })
-        return foodSuggestions.filter { !alreadyListed.contains($0.lowercased()) }
     }
 
     var body: some View {
@@ -100,12 +92,6 @@ struct AddItemView: View {
                     ForEach(localMatches) { item in
                         Button { applyLocal(item) } label: {
                             Label(item.name, systemImage: "clock.arrow.circlepath")
-                                .foregroundStyle(.primary)
-                        }
-                    }
-                    ForEach(foodMatches, id: \.self) { food in
-                        Button { applyFood(food) } label: {
-                            Label(food, systemImage: "leaf")
                                 .foregroundStyle(.primary)
                         }
                     }
@@ -233,7 +219,7 @@ struct AddItemView: View {
     }
 
     // MARK: - Live suggestions
-    // searches OFF for generic foods and branded products.
+    // searches Open Food Facts for real products only (with brand and photo).
     // waits for a pause in typing and drops old requests if the text changed in the meantime
     private func scheduleSuggestions(for text: String) {
         suggestionTask?.cancel()
@@ -243,7 +229,6 @@ struct AddItemView: View {
         // skip if the text is too short or it was just filled by a suggestion/barcode
         guard query.count >= 2, text != filledName else {
             suggestions = []
-            foodSuggestions = []
             searchNote = nil
             return
         }
@@ -254,12 +239,7 @@ struct AddItemView: View {
             guard !Task.isCancelled else { return }
             isSearching = true
 
-            // generic foods first, quick request (if it fails we just show nothing)
-            let foods = (try? await OpenFoodFactsService.foodSuggestions(query)) ?? []
-            guard !Task.isCancelled else { return }
-            foodSuggestions = foods
-
-            // then branded products, min 3 letters
+            // only real products from Open Food Facts, min 3 letters
             guard query.count >= 3 else { isSearching = false; return }
             do {
                 let result = try await OpenFoodFactsService.search(query)
@@ -283,7 +263,6 @@ struct AddItemView: View {
         suggestionTask?.cancel()
         isSearching = false
         suggestions = []
-        foodSuggestions = []
         searchNote = nil
     }
 
@@ -335,16 +314,6 @@ struct AddItemView: View {
                 }
             }
         }
-    }
-
-    // user picked a generic food
-    private func applyFood(_ food: String) {
-        stopSuggestions()
-        name = food
-        filledName = name
-        englishHint = nil   // becomes the recipe keyword on save
-        categoryHint = []
-        message = nil
     }
 
     // reuse the data of an item added before
