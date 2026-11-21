@@ -7,26 +7,26 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		0CFD066B3093AC0700B78AAC /* SmartFridge2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartFridge2.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0CFD066B3093AC0700B78AAC /* Belloop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Belloop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0CFD06973093AF2D00B78AAC /* Exceptions for "SmartFridge2" folder in "SmartFridge2" target */ = {
+		0CFD06973093AF2D00B78AAC /* Exceptions for "Belloop" folder in "Belloop" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 0CFD066A3093AC0700B78AAC /* SmartFridge2 */;
+			target = 0CFD066A3093AC0700B78AAC /* Belloop */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0CFD066D3093AC0700B78AAC /* SmartFridge2 */ = {
+		0CFD066D3093AC0700B78AAC /* Belloop */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				0CFD06973093AF2D00B78AAC /* Exceptions for "SmartFridge2" folder in "SmartFridge2" target */,
+				0CFD06973093AF2D00B78AAC /* Exceptions for "Belloop" folder in "Belloop" target */,
 			);
-			path = SmartFridge2;
+			path = Belloop;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -43,7 +43,7 @@
 		0CFD06623093AC0700B78AAC = {
 			isa = PBXGroup;
 			children = (
-				0CFD066D3093AC0700B78AAC /* SmartFridge2 */,
+				0CFD066D3093AC0700B78AAC /* Belloop */,
 				0CFD066C3093AC0700B78AAC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -51,7 +51,7 @@
 		0CFD066C3093AC0700B78AAC /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0CFD066B3093AC0700B78AAC /* SmartFridge2.app */,
+				0CFD066B3093AC0700B78AAC /* Belloop.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -59,9 +59,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0CFD066A3093AC0700B78AAC /* SmartFridge2 */ = {
+		0CFD066A3093AC0700B78AAC /* Belloop */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0CFD06763093AC0800B78AAC /* Build configuration list for PBXNativeTarget "SmartFridge2" */;
+			buildConfigurationList = 0CFD06763093AC0800B78AAC /* Build configuration list for PBXNativeTarget "Belloop" */;
 			buildPhases = (
 				0CFD06673093AC0700B78AAC /* Sources */,
 				0CFD06683093AC0700B78AAC /* Frameworks */,
@@ -70,11 +70,11 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				0CFD066D3093AC0700B78AAC /* SmartFridge2 */,
+				0CFD066D3093AC0700B78AAC /* Belloop */,
 			);
-			name = SmartFridge2;
+			name = Belloop;
 			productName = SmartFridge2;
-			productReference = 0CFD066B3093AC0700B78AAC /* SmartFridge2.app */;
+			productReference = 0CFD066B3093AC0700B78AAC /* Belloop.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -93,7 +93,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0CFD06663093AC0700B78AAC /* Build configuration list for PBXProject "SmartFridge2" */;
+			buildConfigurationList = 0CFD06663093AC0700B78AAC /* Build configuration list for PBXProject "Belloop" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -107,7 +107,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0CFD066A3093AC0700B78AAC /* SmartFridge2 */,
+				0CFD066A3093AC0700B78AAC /* Belloop */,
 			);
 		};
 /* End PBXProject section */
@@ -129,7 +129,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		0CFD06743093AC0800B78AAC /* Debug configuration for PBXProject "SmartFridge2" */ = {
+		0CFD06743093AC0800B78AAC /* Debug configuration for PBXProject "Belloop" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -194,7 +194,7 @@
 			};
 			name = Debug;
 		};
-		0CFD06753093AC0800B78AAC /* Release configuration for PBXProject "SmartFridge2" */ = {
+		0CFD06753093AC0800B78AAC /* Release configuration for PBXProject "Belloop" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -252,19 +252,19 @@
 			};
 			name = Release;
 		};
-		0CFD06773093AC0800B78AAC /* Debug configuration for PBXNativeTarget "SmartFridge2" */ = {
+		0CFD06773093AC0800B78AAC /* Debug configuration for PBXNativeTarget "Belloop" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = SmartFridge2/SmartFridge2.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Belloop/Belloop.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = U892C83F4S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SmartFridge2/Info.plist;
+				INFOPLIST_FILE = Belloop/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Belloop;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Belloop uses the camera to scan barcodes and expiration dates";
@@ -284,7 +284,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SmartFridge2/SmartFridge2-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "Belloop/Belloop-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -292,19 +292,19 @@
 			};
 			name = Debug;
 		};
-		0CFD06783093AC0800B78AAC /* Release configuration for PBXNativeTarget "SmartFridge2" */ = {
+		0CFD06783093AC0800B78AAC /* Release configuration for PBXNativeTarget "Belloop" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = SmartFridge2/SmartFridge2.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Belloop/Belloop.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = U892C83F4S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SmartFridge2/Info.plist;
+				INFOPLIST_FILE = Belloop/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Belloop;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Belloop uses the camera to scan barcodes and expiration dates";
@@ -324,7 +324,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SmartFridge2/SmartFridge2-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "Belloop/Belloop-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -334,19 +334,19 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0CFD06663093AC0700B78AAC /* Build configuration list for PBXProject "SmartFridge2" */ = {
+		0CFD06663093AC0700B78AAC /* Build configuration list for PBXProject "Belloop" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0CFD06743093AC0800B78AAC /* Debug configuration for PBXProject "SmartFridge2" */,
-				0CFD06753093AC0800B78AAC /* Release configuration for PBXProject "SmartFridge2" */,
+				0CFD06743093AC0800B78AAC /* Debug configuration for PBXProject "Belloop" */,
+				0CFD06753093AC0800B78AAC /* Release configuration for PBXProject "Belloop" */,
 			);
 			defaultConfigurationName = Release;
 		};
-		0CFD06763093AC0800B78AAC /* Build configuration list for PBXNativeTarget "SmartFridge2" */ = {
+		0CFD06763093AC0800B78AAC /* Build configuration list for PBXNativeTarget "Belloop" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0CFD06773093AC0800B78AAC /* Debug configuration for PBXNativeTarget "SmartFridge2" */,
-				0CFD06783093AC0800B78AAC /* Release configuration for PBXNativeTarget "SmartFridge2" */,
+				0CFD06773093AC0800B78AAC /* Debug configuration for PBXNativeTarget "Belloop" */,
+				0CFD06783093AC0800B78AAC /* Release configuration for PBXNativeTarget "Belloop" */,
 			);
 			defaultConfigurationName = Release;
 		};
