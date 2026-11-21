@@ -33,8 +33,10 @@ struct RecipeSheet: View {
     @State private var translationConfig: TranslationSession.Configuration?
     @State private var isTranslating = false
     @State private var translationFailed = false
-    // opens on Savory, the switch at the top changes it
+    // opens on Savory. if the products only make desserts it moves to Sweet by itself,
+    // after that only the switch at the top changes it
     @State private var recipeType: RecipeType = .savory
+    @State private var startTypeChecked = false
 
     // while pulling to refresh the old list stays on screen, the spinner is only for the first load
     private var state: LoadState { results[recipeType]?.state ?? .loading }
@@ -167,10 +169,19 @@ struct RecipeSheet: View {
         }
         guard !Task.isCancelled else { return }   // the sheet was closed, ignore
 
+        // only the very first search can choose the tab, never after the user touched the switch
+        let isFirstSearch = !startTypeChecked
+        startTypeChecked = true
+
         let recipes = result.recipes
         guard !recipes.isEmpty else {
             results[type] = TypeResult(state: .failed(result.emptyReason ?? .noKnownIngredient),
                                        shownIDs: shown, unused: result.unusedProducts, translated: true)
+            // no savory recipes, but there are sweet ones (e.g. only biscuits): open on Sweet.
+            // savory and sweet together stays on Savory
+            if isFirstSearch, type == .savory, recipeType == .savory, result.emptyReason == .noneOfType {
+                recipeType = .sweet
+            }
             return
         }
         shown.formUnion(recipes.map(\.id))
