@@ -85,10 +85,6 @@ You need a Mac with Xcode and the iOS 27 SDK, and a real iPhone: the camera scan
 3. Sign in to iCloud on the iPhone if you want to try the sync.
 4. Run on the iPhone with ⌘R.
 
-## Trying it with TestFlight
-
-We share test builds through TestFlight. If you're a mentor or a friend of the project, ask us for the public link, open it on your iPhone and install Belloop from the TestFlight app.
-
 ## Privacy
 
 No account, no tracking, no ads, no analytics. Your pantry lives on your iPhone and in your own iCloud, and we can't see it. The full privacy policy is here: **[atymia.github.io/belloop-privacy](https://atymia.github.io/belloop-privacy/)**.
