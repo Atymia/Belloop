@@ -76,15 +76,6 @@ Belloop/
 └── PrivacyInfo.xcprivacy       privacy manifest
 ```
 
-## Running it
-
-You need a Mac with Xcode and the iOS 27 SDK, and a real iPhone: the camera scanner doesn't work in the Simulator.
-
-1. Clone the repo and open `Belloop.xcodeproj`.
-2. In **Signing & Capabilities**, pick your team. If you're not on our team, change the Bundle Identifier and the iCloud container to your own.
-3. Sign in to iCloud on the iPhone if you want to try the sync.
-4. Run on the iPhone with ⌘R.
-
 ## Privacy
 
 No account, no tracking, no ads, no analytics. Your pantry lives on your iPhone and in your own iCloud, and we can't see it. The full privacy policy is here: **[atymia.github.io/belloop-privacy](https://atymia.github.io/belloop-privacy/)**.
@@ -93,7 +84,6 @@ No account, no tracking, no ads, no analytics. Your pantry lives on your iPhone 
 
 - Recipes come from TheMealDB, which is mostly English and has more international dishes than Italian ones. We translate them on the device, so some wording can sound a bit literal.
 - Product search depends on Open Food Facts. When their server is busy, the search can be slow; scanning the barcode is always the most reliable way.
-- Fresh fruit and vegetables without a barcode aren't the focus yet. That's on our list for later.
 - We use TheMealDB's free test key. Before a public App Store release we'll need their supporter key.
 
 ## Credits
@@ -104,5 +94,3 @@ No account, no tracking, no ads, no analytics. Your pantry lives on your iPhone 
 ## The team
 
 Belloop is made by **High Five**, a team of students at the Apple Developer Academy:
-
-Francesco Esposito · Shamima Islam · Alina Siddiqui · Smail Oujaoura · Elbachir El alaoui
