@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 // MARK: - Settings
 struct SettingsView: View {
@@ -43,22 +44,35 @@ struct SettingsView: View {
                 Text("You'll get one reminder at 9:00 for everything that's about to expire, and a question the day after something passes its date.")
             }
 
-            Section("Help") {
+            Section{
                 NavigationLink(value: ProfileRoute.howToUse) {
                     Label("How to Use", systemImage: "questionmark.circle")
                 }
-                PlaceholderRow("Help & FAQ", systemImage: "lifepreserver")
-                PlaceholderRow("Contact Us", systemImage: "envelope")
-                PlaceholderRow("Send Feedback", systemImage: "bubble.left")
+                NavigationLink {
+                    HelpFAQView()
+                } label: {
+                    Label("Help & FAQ", systemImage: "lifepreserver")
+                }
+                ExternalRow("Contact Us", systemImage: "envelope", url: AppLinks.contact)
+                ExternalRow("Send Feedback", systemImage: "bubble.left", url: AppLinks.feedback)
+            } header: {
+                Text("Help")
+            } footer: {
+                Text("We read every message: \(AppLinks.email)")
+                    .textSelection(.enabled)
             }
 
             Section("About") {
-                PlaceholderRow("Privacy Policy", systemImage: "hand.raised")
-                PlaceholderRow("Terms of Service", systemImage: "doc.text")
+                ExternalRow("Privacy Policy", systemImage: "hand.raised", url: AppLinks.privacy)
+                ExternalRow("Terms of Use", systemImage: "doc.text", url: AppLinks.terms)
                 NavigationLink(value: ProfileRoute.dataSources) {
                     Label("Data Sources", systemImage: "books.vertical")
                 }
-                PlaceholderRow("About", systemImage: "info.circle")
+                NavigationLink {
+                    AboutView()
+                } label: {
+                    Label("About", systemImage: "info.circle")
+                }
             }
         }
         .navigationTitle("Settings")
@@ -70,8 +84,74 @@ struct SettingsView: View {
     }
 }
 
+// MARK: - Links
+// one place for every address the app opens, easy to change
+enum AppLinks {
+    // the same address we gave Apple as the TestFlight feedback email
+    static let email = "alpha.cerbero@gmail.com"
+    static let privacy = URL(string: "https://atymia.github.io/belloop-privacy/")!
+    // no accounts and nothing to buy, so Apple's standard license is enough for now
+    static let terms = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+
+    static var contact: URL { mail(subject: "Belloop") }
+
+    // the version and iOS go in the email, so we know which build they're talking about
+    static var feedback: URL {
+        let body = String(localized: "Tell us what happened, or what you'd change:")
+            + "\n\n\n\n—\nBelloop \(appVersion) · iOS \(UIDevice.current.systemVersion)"
+        return mail(subject: String(localized: "Belloop feedback"), body: body)
+    }
+
+    // "1.0 (2)" from the app's Info.plist
+    static var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+
+    private static func mail(subject: String, body: String? = nil) -> URL {
+        var parts = URLComponents()
+        parts.scheme = "mailto"
+        parts.path = email
+        parts.queryItems = [URLQueryItem(name: "subject", value: subject)]
+        if let body { parts.queryItems?.append(URLQueryItem(name: "body", value: body)) }
+        return parts.url ?? URL(string: "mailto:\(email)")!
+    }
+}
+
+// a row that opens Mail or Safari, with the little arrow that says "this leaves the app"
+struct ExternalRow: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let url: URL
+
+    init(_ title: LocalizedStringKey, systemImage: String, url: URL) {
+        self.title = title
+        self.systemImage = systemImage
+        self.url = url
+    }
+
+    var body: some View {
+        Link(destination: url) {
+            LabeledContent {
+                Image(systemName: "arrow.up.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            } label: {
+                // black text like the other rows, the icon keeps the app color
+                Label {
+                    Text(title).foregroundStyle(.primary)
+                } icon: {
+                    Image(systemName: systemImage)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Not done yet
-// shows "Soon", TODO: make these real NavigationLinks
+// shows "Soon", still used for Sharing in the Profile (family sharing comes later)
 struct PlaceholderRow: View {
     let title: LocalizedStringKey
     let systemImage: String
@@ -135,6 +215,91 @@ struct HowToUseView: View {
             }
         }
         .navigationTitle("How to Use")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Help & FAQ
+struct HelpFAQView: View {
+    private struct Question: Identifiable {
+        let id: Int
+        let question: LocalizedStringKey
+        let answer: LocalizedStringKey
+    }
+
+    private let questions: [Question] = [
+        Question(id: 1, question: "The scanner can't read the date",
+                 answer: "Hold the phone still, with good light. If it can't focus, move a little farther away. You can turn on the flashlight in the scanner, and if the pack has more than one date, tap the right one. You can always type the date yourself."),
+        Question(id: 2, question: "I can't find a product when I type its name",
+                 answer: "Search uses Open Food Facts, a free database filled in by volunteers, so not every product is there yet and sometimes their server is slow. Scanning the barcode works best. If nothing comes up, just save the name as you typed it."),
+        Question(id: 3, question: "When do the reminders arrive?",
+                 answer: "At 9:00, a few days before the date. You choose how many in Settings, from 1 to 7. The day after the date, Belloop asks if you used the product."),
+        Question(id: 4, question: "Where are my products saved?",
+                 answer: "On your iPhone and, if you're signed in to iCloud, in your own iCloud, so they're the same on all your devices. Only you can see them, we can't."),
+        Question(id: 5, question: "Does Belloop work without internet?",
+                 answer: "Your pantry and the reminders do. Searching for products and finding recipes need a connection."),
+        Question(id: 6, question: "Why do some recipes sound a bit odd?",
+                 answer: "The recipes come from TheMealDB in English and are translated on your iPhone. Most of the time it's fine, but now and then a word comes out a bit literal."),
+        Question(id: 7, question: "How do I remove a product?",
+                 answer: "In Pantry, swipe left on it and tap Delete. If you finished it, you can also answer the question you get the day after its date."),
+    ]
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(questions) { item in
+                    DisclosureGroup {
+                        Text(item.answer)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 4)
+                    } label: {
+                        Text(item.question)
+                    }
+                }
+            } footer: {
+                Text("Still stuck? Write to us from Settings, under Contact Us.")
+            }
+        }
+        .navigationTitle("Help & FAQ")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - About
+struct AboutView: View {
+    private let team = ["Francesco Esposito", "Shamima Islam", "Alina Siddiqui", "Smail Oujaoura", "Elbachir El alaoui"]
+
+    var body: some View {
+        List {
+            Section {
+                VStack(spacing: 6) {
+                    Text(verbatim: "Belloop")
+                        .font(.largeTitle.bold())
+                    Text("Version \(AppLinks.appVersion)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .listRowBackground(Color.clear)
+            }
+
+            Section {
+                Text("We made Belloop because we kept finding things at the back of the cupboard a day too late. Scan what you buy, and the app reminds you before it expires and helps you cook it.")
+            }
+
+            Section {
+                ForEach(team, id: \.self) { name in
+                    Text(verbatim: name)
+                }
+            } header: {
+                Text("Made by High Five")
+            } footer: {
+                Text("Students at the Apple Developer Academy.")
+            }
+        }
+        .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
