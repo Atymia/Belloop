@@ -94,3 +94,5 @@ No account, no tracking, no ads, no analytics. Your pantry lives on your iPhone 
 ## The team
 
 Belloop is made by **High Five**, a team of students at the Apple Developer Academy:
+
+- [@atymia](https://github.com/Atymia)
