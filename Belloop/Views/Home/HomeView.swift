@@ -87,7 +87,7 @@ struct HomeView: View {
             .toolbar {
                 // avatar button like in the App Store
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onProfile) { AvatarView(size: 36) }
+                    Button(action: onProfile) { AvatarView(size: 40) }   // a bit bigger, still fits the bar
                         .accessibilityLabel("Account")
                 }
                 .sharedBackgroundVisibility(.hidden)
