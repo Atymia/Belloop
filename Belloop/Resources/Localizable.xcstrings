@@ -550,17 +550,6 @@
         }
       }
     },
-    "Date read: %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Data letta: %@"
-          }
-        }
-      }
-    },
     "Delete Account" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -843,17 +832,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cinque passi per sprecare meno cibo."
-          }
-        }
-      }
-    },
-    "Frame the date printed on the package, then check it and correct it if needed." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inquadra la data stampata sulla confezione, poi controllala e correggila se serve."
           }
         }
       }
@@ -1329,17 +1307,6 @@
         }
       }
     },
-    "Point the camera at the date. On bottles, tilt them to avoid reflections." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inquadra la data. Sulle bottiglie, inclinale per evitare i riflessi."
-          }
-        }
-      }
-    },
     "Privacy Policy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1457,17 +1424,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Leggi ad alta voce"
-          }
-        }
-      }
-    },
-    "Read expiration date" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leggi data di scadenza"
           }
         }
       }
@@ -1688,17 +1644,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cerca su Open Food Facts"
-          }
-        }
-      }
-    },
-    "Search products..." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cerca prodotti..."
           }
         }
       }
@@ -2596,6 +2541,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld di %lld"
+          }
+        }
+      }
+    },
+    "Scan product" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scansiona prodotto"
+          }
+        }
+      }
+    },
+    "Scan barcode and date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scansiona codice a barre e data"
+          }
+        }
+      }
+    },
+    "Point the camera at the barcode and the expiration date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inquadra il codice a barre e la data di scadenza"
+          }
+        }
+      }
+    },
+    "Got the barcode. Now the expiration date, it's often on the top or on the back." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice a barre preso. Ora la data di scadenza: di solito è sopra o sul retro."
+          }
+        }
+      }
+    },
+    "Got the date. Now the barcode." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data presa. Ora il codice a barre."
+          }
+        }
+      }
+    },
+    "Found" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trovato"
+          }
+        }
+      }
+    },
+    "Not found yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ancora trovato"
+          }
+        }
+      }
+    },
+    "Read from the package" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letta dalla confezione"
+          }
+        }
+      }
+    },
+    "Product removed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prodotto rimosso"
+          }
+        }
+      }
+    },
+    "Swipe left or right to see the other products" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scorri a destra o a sinistra per vedere gli altri prodotti"
+          }
+        }
+      }
+    },
+    "Search products" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca prodotti"
+          }
+        }
+      }
+    },
+    "Keep the camera on and turn the package: the date is read in the same scan. Check it and correct it if needed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni la fotocamera accesa e gira la confezione: la data viene letta nella stessa scansione. Controllala e correggila se serve."
+          }
+        }
+      }
+    },
+    "Enter manually" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci a mano"
           }
         }
       }

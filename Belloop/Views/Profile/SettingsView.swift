@@ -183,7 +183,7 @@ struct HowToUseView: View {
         Step(id: 1, symbol: "barcode.viewfinder", title: "1. Scan the barcode",
              text: "Name and photo are filled in from Open Food Facts. No barcode? Type the name."),
         Step(id: 2, symbol: "calendar.badge.clock", title: "2. Scan the expiration date",
-             text: "Frame the date printed on the package, then check it and correct it if needed."),
+             text: "Keep the camera on and turn the package: the date is read in the same scan. Check it and correct it if needed."),
         Step(id: 3, symbol: "refrigerator", title: "3. Save it",
              text: "The product goes into your Pantry, sorted by expiration date."),
         Step(id: 4, symbol: "bell.badge", title: "4. Get reminded",

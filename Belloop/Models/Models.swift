@@ -49,7 +49,7 @@ enum ExpiryStatus {
         switch self {
         case .urgent: "exclamationmark.triangle.fill"
         case .soon:   "clock.fill"
-        case .fresh:  "checkmark.circle"
+        case .fresh:  "checkmark.circle.fill"   // filled like the other two
         }
     }
 }

@@ -12,7 +12,10 @@ struct HomeView: View {
     @Query(sort: \FoodItem.expirationDate) private var items: [FoodItem]
     // read here so the list updates when the setting changes
     @AppStorage(AppSettings.Key.reminderDays) private var reminderDays = AppSettings.defaultReminderDays
-    @ScaledMetric(relativeTo: .largeTitle) private var scanIconSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .largeTitle) private var scanIconSize: CGFloat = 44
+
+    // owned by ContentView (it closes a product's screen if the product gets deleted)
+    @Binding var path: [Route]
 
     var onAdd: () -> Void
     var onRecipes: ([FoodItem]) -> Void
@@ -20,7 +23,6 @@ struct HomeView: View {
     var onProfile: () -> Void
 
     @State private var reviewingExpired = false
-    @State private var showingAllExpiring = false
 
     // how many expiring products Home shows, the rest are in "See all"
     private static let previewLimit = 3
@@ -46,7 +48,7 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path.withoutRepeats) {
             List {
                 // scan
                 Section {
@@ -72,7 +74,7 @@ struct HomeView: View {
                         allFreshRow
                     } else {
                         ForEach(expiring.prefix(Self.previewLimit)) { item in
-                            NavigationLink(value: item) { ItemRow(item: item, dateOnly: true) }
+                            NavigationLink(value: Route.item(item.persistentModelID)) { ItemRow(item: item, dateOnly: true) }
                         }
                     }
                 } header: {
@@ -81,8 +83,7 @@ struct HomeView: View {
             }
             .listSectionSpacing(24)   // same gap between every section
             .navigationTitle("Home")
-            .navigationDestination(for: FoodItem.self) { ItemDetailView(item: $0) }
-            .navigationDestination(isPresented: $showingAllExpiring) { ExpiringListView() }
+            .navigationDestination(for: Route.self) { $0.destination }
             .toolbar {
                 // avatar button like in the App Store
                 ToolbarItem(placement: .topBarTrailing) {
@@ -99,22 +100,19 @@ struct HomeView: View {
     // big scan button
     private var scanButton: some View {
         Button(action: onAdd) {
-            HStack(spacing: 16) {
+            // one line only, bigger: it's the main thing you do in the app
+            HStack(spacing: 14) {
                 Image(systemName: "barcode.viewfinder")
                     .font(.system(size: scanIconSize, weight: .medium))   // scales with text size
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Scan a product")
-                        .font(.title3.bold())
-                    Text("Barcode and expiration date")
-                        .font(.subheadline)
-                        .opacity(0.9)
-                }
+                Text("Scan a product")
+                    .font(.title2.bold())
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 14)
-            .padding(.horizontal, 6)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
         }
+        // the subtitle is gone from the screen, VoiceOver still says what gets scanned
+        .accessibilityHint(Text("Barcode and expiration date"))
         .buttonStyle(.glassProminent)
         .buttonBorderShape(.roundedRectangle(radius: 28))
         .controlSize(.large)
@@ -127,7 +125,7 @@ struct HomeView: View {
             Text("Expiring soon")
             Spacer()
             if expiring.count > Self.previewLimit {
-                Button("See all") { showingAllExpiring = true }
+                Button("See all") { path.append(.allExpiring) }
                     .fontWeight(.regular)
                     .textCase(nil)
             }

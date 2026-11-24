@@ -10,9 +10,9 @@ struct ExpiringListView: View {
     private var expiring: [FoodItem] { items.filter { $0.expires(within: reminderDays) } }
 
     var body: some View {
-        // tapping a product uses the FoodItem destination that Home already has
+        // tapping a product uses the Route destination that Home already has
         List(expiring) { item in
-            NavigationLink(value: item) { ItemRow(item: item, dateOnly: true) }
+            NavigationLink(value: Route.item(item.persistentModelID)) { ItemRow(item: item, dateOnly: true) }
         }
         .navigationTitle("Expiring soon")
         // if you remove the last one from here, don't leave an empty list

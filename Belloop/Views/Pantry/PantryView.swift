@@ -2,6 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct PantryView: View {
+    // owned by ContentView (it closes a product's screen if the product gets deleted)
+    @Binding var path: [Route]
     var onAdd: () -> Void
     var onChoose: () -> Void
 
@@ -9,11 +11,11 @@ struct PantryView: View {
     @State private var selectedSort: SortOption = .expirationAsc
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path.withoutRepeats) {
             PantryList(searchText: searchText, sort: selectedSort)
                 .navigationTitle("Pantry")
-                .searchable(text: $searchText, prompt: "Search products...")
-                .navigationDestination(for: FoodItem.self) { ItemDetailView(item: $0) }
+                .searchable(text: $searchText, prompt: "Search products")
+                .navigationDestination(for: Route.self) { $0.destination }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Menu {
@@ -50,7 +52,7 @@ private struct PantryList: View {
     var body: some View {
         List {
             ForEach(items) { item in
-                NavigationLink(value: item) { ItemRow(item: item) }
+                NavigationLink(value: Route.item(item.persistentModelID)) { ItemRow(item: item) }
             }
             .onDelete { offsets in
                 offsets.map { items[$0] }.forEach { context.remove($0) }

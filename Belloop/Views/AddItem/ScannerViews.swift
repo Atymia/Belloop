@@ -6,32 +6,52 @@ import AVFoundation
 
 enum ScanHint { case idle, holdSteady, chooseOne }
 
-// MARK: - Scanner (barcode or date)
-struct ScannerSheet: View {
-    enum Mode { case barcode, text }
+// what a scan found
+struct ScanResult: Equatable {
+    var barcode: String?
+    var date: Date?
+}
 
-    let mode: Mode
-    let onResult: (String) -> Void
+// MARK: - Scanner
+// looks for the barcode and the expiration date in the same session:
+// you point at the barcode, turn the package, and the date gets read too (or the other
+// way round). no need to cover the barcode anymore when the date is printed next to it
+struct ScannerSheet: View {
+    // when the camera is the first thing you see (Home's scan button) there's a way
+    // out for products without a barcode, like Wallet's "Enter card details manually"
+    var onManual: (() -> Void)? = nil
+    let onFinish: (ScanResult) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var result = ScanResult()
     @State private var hint: ScanHint = .idle
     @State private var torchOn = false
+    @State private var finished = false
     // after a few seconds without a date, the hint gives a tip
     @State private var showTip = false
 
     // false on the simulator and on devices without a flashlight
     private var hasTorch: Bool { AVCaptureDevice.default(for: .video)?.hasTorch ?? false }
 
-    private var title: LocalizedStringKey { mode == .barcode ? "Barcode" : "Expiration date" }
+    private var tip: LocalizedStringKey {
+        "Can't find it? Move a little farther away so it's in focus, or turn on the flashlight."
+    }
 
     private var hintText: LocalizedStringKey {
-        switch (mode, hint) {
-        case (.barcode, _):          "Point the camera at the barcode"
-        case (.text, .idle):
-            showTip ? "Can't find it? Move a little farther away so it's in focus, or turn on the flashlight."
-                    : "Point the camera at the date. On bottles, tilt them to avoid reflections."
-        case (.text, .holdSteady):   "Date found — hold steady…"
-        case (.text, .chooseOne):    "Several dates found — tap the expiration date"
+        switch hint {
+        case .holdSteady: return "Date found — hold steady…"
+        case .chooseOne:  return "Several dates found — tap the expiration date"
+        case .idle: break
+        }
+        switch (result.barcode != nil, result.date != nil) {
+        case (false, false):
+            return "Point the camera at the barcode and the expiration date"
+        case (true, false):
+            return showTip ? tip : "Got the barcode. Now the expiration date, it's often on the top or on the back."
+        case (false, true):
+            return "Got the date. Now the barcode."
+        case (true, true):
+            return "Done"
         }
     }
 
@@ -39,33 +59,57 @@ struct ScannerSheet: View {
         NavigationStack {
             Group {
                 if DataScannerView.isSupported {
-                    ZStack(alignment: .bottom) {
-                        DataScannerView(mode: mode, torchOn: torchOn, onResult: onResult, onHint: { hint = $0 })
-                            .ignoresSafeArea()
+                    ZStack {
+                        DataScannerView(
+                            torchOn: torchOn,
+                            onBarcode: { result.barcode = $0 },
+                            onDate: { result.date = $0 },
+                            onHint: { hint = $0 }
+                        )
+                        .ignoresSafeArea()
 
-                        Text(hintText)
-                            .font(.subheadline.bold())
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .modifier(HintBackground())
-                            .padding(.bottom, 30)
+                        VStack(spacing: 12) {
+                            // what's been found so far
+                            progress
+                            Spacer()
+                            Text(hintText)
+                                .font(.subheadline.bold())
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .modifier(HintBackground())
+                                .padding(.horizontal)
+                            if let onManual {
+                                Button("Enter manually", action: onManual)
+                                    .buttonStyle(.glass)
+                                    .controlSize(.large)
+                            }
+                        }
+                        .padding(.bottom, 24)
                     }
                 } else {
-                    ContentUnavailableView(
-                        "Scanner unavailable",
-                        systemImage: "camera.metering.unknown",
-                        description: Text("A real iPhone with camera access is required. You can enter the details by hand.")
-                    )
+                    ContentUnavailableView {
+                        Label("Scanner unavailable", systemImage: "camera.metering.unknown")
+                    } description: {
+                        Text("A real iPhone with camera access is required. You can enter the details by hand.")
+                    } actions: {
+                        if let onManual {
+                            Button("Enter manually", action: onManual)
+                                .buttonStyle(.bordered)
+                        }
+                    }
                 }
             }
-            .navigationTitle(title)
+            .navigationTitle("Scan product")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) { dismiss() }
+                // X like every iOS 26 sheet. nothing gets saved: from the form you go back to it,
+                // from Home's scan button the whole sheet closes
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(role: .close) { dismiss() }
                 }
                 // flashlight for bottles and dark packages
-                if mode == .text, hasTorch {
+                if hasTorch {
                     ToolbarItem(placement: .topBarTrailing) {
                         // LocalizedStringKey so the title gets translated
                         Button(torchOn ? LocalizedStringKey("Turn Flashlight Off") : LocalizedStringKey("Turn Flashlight On"),
@@ -74,15 +118,54 @@ struct ScannerSheet: View {
                         }
                     }
                 }
+                // the date isn't on the package or can't be read: keep what was found
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(role: .confirm) { finish() }
+                        .disabled(result == ScanResult())
+                }
             }
             // no date for 5 seconds: show the tip (any date found resets it)
             .task(id: hint) {
                 showTip = false
-                guard mode == .text, hint == .idle else { return }
+                guard hint == .idle, result.date == nil else { return }
                 try? await Task.sleep(for: .seconds(5))
                 if !Task.isCancelled { showTip = true }
             }
+            // both found: a short pause so you see the two checkmarks, then on to the form
+            .onChange(of: result) { _, found in
+                guard found.barcode != nil, found.date != nil else { return }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    finish()
+                }
+            }
         }
+    }
+
+    // two small labels at the top that tick when found
+    private var progress: some View {
+        HStack(spacing: 8) {
+            step("Barcode", symbol: "barcode", done: result.barcode != nil)
+            step("Expiration date", symbol: "calendar", done: result.date != nil)
+        }
+        .padding(.top, 12)
+    }
+
+    private func step(_ title: LocalizedStringKey, symbol: String, done: Bool) -> some View {
+        Label(title, systemImage: done ? "checkmark.circle.fill" : symbol)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(done ? Color("StatusFresh") : .primary)
+            .contentTransition(.symbolEffect(.replace))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .modifier(HintBackground())
+            .accessibilityValue(done ? Text("Found") : Text("Not found yet"))
+    }
+
+    private func finish() {
+        guard !finished else { return }
+        finished = true
+        onFinish(result)
     }
 }
 
@@ -119,9 +202,9 @@ final class DateHighlightView: UIView {
 
 // MARK: - DataScanner
 struct DataScannerView: UIViewControllerRepresentable {
-    let mode: ScannerSheet.Mode
     var torchOn = false
-    let onResult: (String) -> Void
+    let onBarcode: (String) -> Void
+    let onDate: (Date) -> Void
     let onHint: (ScanHint) -> Void
 
     static var isSupported: Bool {
@@ -131,22 +214,19 @@ struct DataScannerView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> DataScannerViewController {
         let barcodes: DataScannerViewController.RecognizedDataType =
             .barcode(symbologies: [.ean13, .ean8, .upce])
-        // also look for barcodes so their numbers aren't read as dates
-        let types: Set<DataScannerViewController.RecognizedDataType> =
-            mode == .barcode ? [barcodes] : [.text(), barcodes]
 
         // no default highlight, it would box every word.
         // I draw boxes only around dates.
         // high frame rate tracking is OFF: a date doesn't need fast tracking,
         // and the slower camera mode gets along better with the flashlight
         let scanner = DataScannerViewController(
-            recognizedDataTypes: types,
+            recognizedDataTypes: [.text(), barcodes],
             qualityLevel: .accurate,
-            recognizesMultipleItems: mode == .text,
+            recognizesMultipleItems: true,
             isHighFrameRateTrackingEnabled: false,
             isPinchToZoomEnabled: true,
-            isGuidanceEnabled: mode == .barcode,
-            isHighlightingEnabled: mode == .barcode
+            isGuidanceEnabled: false,
+            isHighlightingEnabled: false
         )
         scanner.delegate = context.coordinator
         return scanner
@@ -156,10 +236,8 @@ struct DataScannerView: UIViewControllerRepresentable {
         if !scanner.isScanning {
             try? scanner.startScanning()
             // dates are tiny: with 2x zoom you hold the phone farther away, where the camera
-            // can focus (up close the picture is blurry, that's why only the flashlight helped)
-            if mode == .text {
-                scanner.zoomFactor = min(max(2, scanner.minZoomFactor), scanner.maxZoomFactor)
-            }
+            // can focus (up close the picture is blurry). barcodes read fine at 2x too
+            scanner.zoomFactor = min(max(2, scanner.minZoomFactor), scanner.maxZoomFactor)
         }
         context.coordinator.setTorch(torchOn)
     }
@@ -174,16 +252,22 @@ struct DataScannerView: UIViewControllerRepresentable {
     @MainActor
     final class Coordinator: NSObject, DataScannerViewControllerDelegate {
         private let parent: DataScannerView
-        private var delivered = false
+        private var barcodeSent = false
+        private var dateSent = false
 
         private struct Candidate {
-            let text: String
+            let date: Date
             let day: Date
             let overlay: DateHighlightView
         }
         private var candidates: [UUID: Candidate] = [:]
-        // barcode areas, text inside is ignored
+        // where the bars are: text on top of them is ignored
         private var barcodeZones: [UUID: CGRect] = [:]
+        // the barcode numbers seen so far: the digits printed under the bars are the same,
+        // so a text made of those digits is never a date. Before, I ignored a big area around
+        // the barcode instead, and a date printed right next to it was ignored too
+        // (people had to cover the barcode with a finger)
+        private var barcodeNumbers: Set<String> = []
         private var lockedDays: Set<Date> = []
         private var lockTask: Task<Void, Never>?
 
@@ -223,27 +307,18 @@ struct DataScannerView: UIViewControllerRepresentable {
         func dataScanner(_ dataScanner: DataScannerViewController,
                          didAdd addedItems: [RecognizedItem],
                          allItems: [RecognizedItem]) {
-            switch parent.mode {
-            case .barcode:
-                for case .barcode(let code) in addedItems {
-                    if let value = code.payloadStringValue { deliver(value); return }
-                }
-            case .text:
-                process(addedItems, in: dataScanner)
-            }
+            process(addedItems, in: dataScanner)
         }
 
         func dataScanner(_ dataScanner: DataScannerViewController,
                          didUpdate updatedItems: [RecognizedItem],
                          allItems: [RecognizedItem]) {
-            guard parent.mode == .text else { return }
             process(updatedItems, in: dataScanner)
         }
 
         func dataScanner(_ dataScanner: DataScannerViewController,
                          didRemove removedItems: [RecognizedItem],
                          allItems: [RecognizedItem]) {
-            guard parent.mode == .text else { return }
             for item in removedItems {
                 barcodeZones.removeValue(forKey: item.id)
                 drop(item.id)
@@ -251,29 +326,42 @@ struct DataScannerView: UIViewControllerRepresentable {
             evaluate()
         }
 
-        // MARK: Dates
+        // MARK: Barcodes and dates
         private func process(_ items: [RecognizedItem], in scanner: DataScannerViewController) {
             // barcodes first so the texts can be checked against them
-            for item in items { if case .barcode = item { markBarcodeZone(item) } }
+            for item in items {
+                guard case .barcode(let code) = item else { continue }
+                barcodeZones[item.id] = Self.rect(for: item.bounds).insetBy(dx: -4, dy: -4)
+                guard let value = code.payloadStringValue else { continue }
+                barcodeNumbers.insert(value)
+                if !barcodeSent {
+                    barcodeSent = true
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    parent.onBarcode(value)
+                }
+            }
+            for (id, candidate) in candidates where barcodeZones.values.contains(where: { $0.intersects(candidate.overlay.frame) }) {
+                drop(id)
+            }
+            guard !dateSent else { return }
             for item in items { if case .text = item { consider(item, in: scanner) } }
             evaluate()
         }
 
-        private func markBarcodeZone(_ item: RecognizedItem) {
-            // extra space below for the numbers under the bars
-            let zone = Self.rect(for: item.bounds).insetBy(dx: -24, dy: -70)
-            barcodeZones[item.id] = zone
-            for (id, candidate) in candidates where candidate.overlay.frame.intersects(zone) {
-                drop(id)
-            }
+        // the line of digits under the bars ("8 001234 567890"), or a piece of it
+        private func isBarcodeNumber(_ text: String) -> Bool {
+            let digits = text.filter(\.isNumber)
+            guard digits.count >= 6 else { return false }
+            return barcodeNumbers.contains { $0.contains(digits) || digits.contains($0) }
         }
 
         private func consider(_ item: RecognizedItem, in scanner: DataScannerViewController) {
             guard case .text(let text) = item else { return }
             let rect = Self.rect(for: item.bounds)
             guard !barcodeZones.values.contains(where: { $0.intersects(rect) }),
+                  !isBarcodeNumber(text.transcript),
                   let date = DateParser.parse(text.transcript) else {
-                drop(item.id)   // not a date anymore, remove the box
+                drop(item.id)   // not a date (anymore), remove the box
                 return
             }
             let frame = rect.insetBy(dx: -6, dy: -4)
@@ -282,7 +370,7 @@ struct DataScannerView: UIViewControllerRepresentable {
             if let existing = candidates[item.id] {
                 existing.overlay.frame = frame
                 existing.overlay.accessibilityValue = text.transcript
-                candidates[item.id] = Candidate(text: text.transcript, day: day, overlay: existing.overlay)
+                candidates[item.id] = Candidate(date: date, day: day, overlay: existing.overlay)
             } else {
                 let overlay = DateHighlightView(frame: frame)
                 // VoiceOver reads it as a button
@@ -291,10 +379,10 @@ struct DataScannerView: UIViewControllerRepresentable {
                 overlay.accessibilityLabel = String(localized: "Expiration date found")
                 overlay.accessibilityValue = text.transcript
                 overlay.onTap = { [weak self] in
-                    if let candidate = self?.candidates[item.id] { self?.deliver(candidate.text) }
+                    if let candidate = self?.candidates[item.id] { self?.sendDate(candidate.date) }
                 }
                 scanner.overlayContainerView.addSubview(overlay)
-                candidates[item.id] = Candidate(text: text.transcript, day: day, overlay: overlay)
+                candidates[item.id] = Candidate(date: date, day: day, overlay: overlay)
             }
         }
 
@@ -305,6 +393,7 @@ struct DataScannerView: UIViewControllerRepresentable {
         // one date: confirm automatically after ~1 second.
         // more dates: the user taps the right one
         private func evaluate() {
+            guard !dateSent else { return }
             let days = Set(candidates.values.map(\.day))
             guard days != lockedDays else { return }   // small movements don't reset the timer
             lockedDays = days
@@ -318,20 +407,22 @@ struct DataScannerView: UIViewControllerRepresentable {
                 lockTask = Task { [weak self] in
                     try? await Task.sleep(for: .milliseconds(900))
                     guard !Task.isCancelled, let self,
-                          let text = self.candidates.values.first?.text else { return }
-                    self.deliver(text)
+                          let date = self.candidates.values.first?.date else { return }
+                    self.sendDate(date)
                 }
             default:
                 parent.onHint(.chooseOne)
             }
         }
 
-        private func deliver(_ value: String) {
-            guard !delivered else { return }
-            delivered = true
+        private func sendDate(_ date: Date) {
+            guard !dateSent else { return }
+            dateSent = true
             lockTask?.cancel()
+            for id in Array(candidates.keys) { drop(id) }   // the boxes did their job
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            parent.onResult(value)
+            parent.onHint(.idle)
+            parent.onDate(date)
         }
 
         private static func rect(for b: RecognizedItem.Bounds) -> CGRect {
