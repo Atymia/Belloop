@@ -9,10 +9,12 @@ struct AddItemView: View {
     // everything already in the pantry (for instant suggestions + duplicate check)
     @Query(sort: \FoodItem.addedDate, order: .reverse) private var existing: [FoodItem]
 
-    enum ScanKind: String, Identifiable {
-        case barcode, expiration
-        var id: String { rawValue }
+    // opened from Home's "Scan a product": the camera is the first thing you see,
+    // the form comes after the scan (or with "Enter manually")
+    init(startScanning: Bool = false) {
+        _cameraFirst = State(initialValue: startScanning)
     }
+    @State private var cameraFirst: Bool
 
     @State private var name = ""
     @State private var expiration = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
@@ -24,11 +26,13 @@ struct AddItemView: View {
     @State private var englishHint: String?
     @State private var categoryHint: [String] = []
 
-    @State private var scanKind: ScanKind?
+    @State private var showScanner = false
     @State private var showCamera = false
     @State private var photoItem: PhotosPickerItem?
     @State private var isWorking = false
     @State private var message: String?
+    // the date read by the camera: while the picker still shows it, a note says so
+    @State private var scannedDate: Date?
 
     // duplicate alert
     @State private var duplicate: FoodItem?
@@ -55,14 +59,25 @@ struct AddItemView: View {
     }
 
     var body: some View {
+        if cameraFirst {
+            // same sheet: first the camera, then the form with what was found.
+            // the X closes the whole sheet, nothing has been added yet
+            ScannerSheet(onManual: { withAnimation { cameraFirst = false } }) { found in
+                withAnimation { cameraFirst = false }
+                use(found)
+            }
+        } else {
+            form
+        }
+    }
+
+    private var form: some View {
         NavigationStack {
             Form {
                 Section("Scan") {
-                    Button { scanKind = .barcode } label: {
-                        Label("Scan barcode", systemImage: "barcode.viewfinder")
-                    }
-                    Button { scanKind = .expiration } label: {
-                        Label("Read expiration date", systemImage: "calendar.badge.clock")
+                    // barcode and date in the same scan (also to scan again and fix the date)
+                    Button { showScanner = true } label: {
+                        Label("Scan barcode and date", systemImage: "barcode.viewfinder")
                     }
                     Button { showCamera = true } label: {
                         Label("Take a photo", systemImage: "camera")
@@ -135,6 +150,11 @@ struct AddItemView: View {
                     }
 
                     DatePicker("Expiration", selection: $expiration, displayedComponents: .date)
+                    if let scannedDate, Calendar.current.isDate(scannedDate, inSameDayAs: expiration) {
+                        Label("Read from the package", systemImage: "checkmark.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 if let data = imageData, let uiImage = UIImage(data: data) {
@@ -150,9 +170,9 @@ struct AddItemView: View {
             .navigationTitle("New product")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // x to cancel, checkmark to save (iOS 26 style, no text)
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(role: .cancel) { dismiss() }
+                // X to close, checkmark to save (iOS 26 style, no text)
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(role: .confirm, action: save)
@@ -160,31 +180,10 @@ struct AddItemView: View {
                 }
             }
             .onChange(of: name) { _, newValue in scheduleSuggestions(for: newValue) }
-            .sheet(item: $scanKind) { kind in
-                switch kind {
-                case .barcode:
-                    ScannerSheet(mode: .barcode) { code in
-                        scanKind = nil
-                        // meat, fish, deli: the label is printed by the store, no database knows it
-                        guard !Self.isStoreLabel(code) else {
-                            message = String(localized: "This is a label printed by the store (meat, fish, deli counter), so no database knows it. Type the name, then scan the date on the label.")
-                            return
-                        }
-                        barcode = code
-                        // if we already have this barcode, ask now before filling everything
-                        if !allowDuplicate, let match = existingMatch(barcode: code, name: "") {
-                            duplicate = match
-                        }
-                        Task { await lookup(code) }
-                    }
-                case .expiration:
-                    ScannerSheet(mode: .text) { text in
-                        if let date = DateParser.parse(text) {
-                            expiration = date
-                            message = String(localized: "Date read: \(date.formatted(date: .abbreviated, time: .omitted))")
-                        }
-                        scanKind = nil
-                    }
+            .sheet(isPresented: $showScanner) {
+                ScannerSheet { found in
+                    showScanner = false
+                    use(found)
                 }
             }
             .fullScreenCover(isPresented: $showCamera) {
@@ -264,6 +263,31 @@ struct AddItemView: View {
         isSearching = false
         suggestions = []
         searchNote = nil
+    }
+
+    // MARK: - Scan results
+    private func use(_ found: ScanResult) {
+        if let date = found.date { useScannedDate(date) }
+        if let code = found.barcode { useScannedBarcode(code) }
+    }
+
+    private func useScannedDate(_ date: Date) {
+        expiration = date
+        scannedDate = date
+    }
+
+    private func useScannedBarcode(_ code: String) {
+        // meat, fish, deli: the label is printed by the store, no database knows it
+        guard !Self.isStoreLabel(code) else {
+            message = String(localized: "This is a label printed by the store (meat, fish, deli counter), so no database knows it. Type the name, then scan the date on the label.")
+            return
+        }
+        barcode = code
+        // if we already have this barcode, ask now before filling everything
+        if !allowDuplicate, let match = existingMatch(barcode: code, name: "") {
+            duplicate = match
+        }
+        Task { await lookup(code) }
     }
 
     // MARK: - Open Food Facts

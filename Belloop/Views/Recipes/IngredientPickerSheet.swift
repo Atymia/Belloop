@@ -24,8 +24,9 @@ struct IngredientPickerSheet: View {
             .navigationTitle("Choose products")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) { dismiss() }
+                // X like every iOS 26 sheet (no "Cancel" text)
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Find recipes") {

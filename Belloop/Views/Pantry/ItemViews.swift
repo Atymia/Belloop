@@ -30,8 +30,9 @@ struct ItemThumbnail: View {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Rectangle().fill(.purple.opacity(0.2))
-                    .overlay(Image(systemName: "photo").foregroundStyle(.purple))
+                // neutral gray like the system placeholders, the purple didn't match the app
+                Rectangle().fill(.fill.tertiary)
+                    .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
             }
         }
         .frame(width: size * min(scale, 2), height: size * min(scale, 2))
@@ -106,17 +107,15 @@ struct ItemDetailView: View {
 
     var body: some View {
         Form {
-            Section {
-                if let photo {
+            // no photo: no section (a big "No photo" placeholder only pushed the details down)
+            if let photo {
+                Section {
                     Image(uiImage: photo)
                         .resizable()
                         .scaledToFit()
                         .frame(maxHeight: 280)
                         .clipShape(.rect(cornerRadius: 16))
                         .frame(maxWidth: .infinity)
-                        .listRowBackground(Color.clear)
-                } else {
-                    ContentUnavailableView("No photo", systemImage: "photo.badge.exclamationmark")
                         .listRowBackground(Color.clear)
                 }
             }

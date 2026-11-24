@@ -1,32 +1,40 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - "Did you use these?" one product at a time
+// MARK: - "Did you use these?"
 // Home shows a single row for the expired products, this sheet goes through them.
-// there's no index to keep track of: every answer takes the product out of the list
-// (used or thrown away = deleted, still have it = expiryReviewed), so the next
-// product is always the first one
+// one card per product: you swipe left and right to look at them in any order,
+// and answering one moves you to the next. used or thrown away = deleted,
+// still have it = expiryReviewed, so either way the card leaves the list
 struct ReviewExpiredSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \FoodItem.expirationDate) private var items: [FoodItem]
 
-    // how many there were when the sheet opened, for "2 of 5"
-    @State private var total = 0
+    // the card on screen
+    @State private var current: FoodItem.ID?
 
     private var pending: [FoodItem] { items.filter { $0.isExpired && !$0.expiryReviewed } }
 
+    private var position: Int {
+        (pending.firstIndex { $0.id == current } ?? 0) + 1
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                if let item = pending.first {
-                    card(for: item)
-                        .id(item.uid)   // new product = new view, so it slides in
-                        .transition(.push(from: .trailing))
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    ForEach(pending) { item in
+                        card(for: item)
+                            .containerRelativeFrame(.horizontal)
+                    }
                 }
+                .scrollTargetLayout()
             }
-            .scrollBounceBehavior(.basedOnSize)   // no bounce when it all fits
-            .animation(.default, value: pending.first?.uid)
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $current)
+            .scrollIndicators(.hidden)
+            .safeAreaInset(edge: .bottom) { pageDots }
             .navigationTitle("Did you use these?")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -38,8 +46,8 @@ struct ReviewExpiredSheet: View {
         }
         .presentationDetents([.medium, .large])
         .onAppear {
-            total = pending.count
             if pending.isEmpty { dismiss() }
+            current = pending.first?.id
         }
         // last one answered, nothing left to ask
         .onChange(of: pending.isEmpty) { _, empty in
@@ -47,48 +55,80 @@ struct ReviewExpiredSheet: View {
         }
     }
 
+    // MARK: - Card
     private func card(for item: FoodItem) -> some View {
-        // iCloud could add one while the sheet is open, so never show "6 of 5"
-        let count = max(total, pending.count)
-        let position = count - pending.count + 1
+        ScrollView {
+            VStack(spacing: 20) {
+                ItemThumbnail(item: item, size: 64)
 
-        return VStack(spacing: 20) {
-            ItemThumbnail(item: item, size: 64)
+                VStack(spacing: 4) {
+                    Text(item.name)
+                        .font(.title3.bold())
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                    Text(item.statusText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
 
-            VStack(spacing: 4) {
-                if count > 1 {
-                    Text("\(position) of \(count)")
+                // same weight for all three: we want the honest answer, not the nice one
+                VStack(spacing: 8) {
+                    Button { answer(.used, item) } label: {
+                        Text("Yes, I used it").frame(maxWidth: .infinity)
+                    }
+                    Button(role: .destructive) { answer(.thrownAway, item) } label: {
+                        Text("No, I threw it away").frame(maxWidth: .infinity)
+                    }
+                    Button { answer(.kept, item) } label: {
+                        Text("I still have it").frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+        }
+        .scrollBounceBehavior(.basedOnSize)   // no bounce when it all fits
+    }
+
+    // dots like the Home screen pages, plus "2 of 5" for VoiceOver
+    @ViewBuilder
+    private var pageDots: some View {
+        if pending.count > 1 {
+            Group {
+                // up to 10 dots, after that they wouldn't fit: "3 of 25"
+                if pending.count <= 10 {
+                    HStack(spacing: 8) {
+                        ForEach(pending) { item in
+                            Circle()
+                                .fill(item.id == current ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+                                .frame(width: 7, height: 7)
+                        }
+                    }
+                } else {
+                    Text("\(position) of \(pending.count)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
-                Text(item.name)
-                    .font(.title3.bold())
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                Text(item.statusText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
             }
-            .accessibilityElement(children: .combine)
-
-            // same weight for all three: we want the honest answer, not the nice one
-            VStack(spacing: 8) {
-                Button { ExpiryReview.apply(.used, to: item, in: context) } label: {
-                    Text("Yes, I used it").frame(maxWidth: .infinity)
-                }
-                Button(role: .destructive) { ExpiryReview.apply(.thrownAway, to: item, in: context) } label: {
-                    Text("No, I threw it away").frame(maxWidth: .infinity)
-                }
-                Button { ExpiryReview.apply(.kept, to: item, in: context) } label: {
-                    Text("I still have it").frame(maxWidth: .infinity)
-                }
-            }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.capsule)
-            .controlSize(.large)
+            .padding(.bottom, 8)
+            .accessibilityElement()
+            .accessibilityLabel(Text("\(position) of \(pending.count)"))
+            .accessibilityHint(Text("Swipe left or right to see the other products"))
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 8)
+    }
+
+    // the answered card leaves, so move to the next one (or the one before, if it was the last)
+    private func answer(_ outcome: ExpiryReview.Outcome, _ item: FoodItem) {
+        let list = pending
+        if let index = list.firstIndex(where: { $0.id == item.id }) {
+            let next = index + 1 < list.count ? list[index + 1] : (index > 0 ? list[index - 1] : nil)
+            withAnimation { current = next?.id }
+        }
+        withAnimation { ExpiryReview.apply(outcome, to: item, in: context) }
     }
 }
