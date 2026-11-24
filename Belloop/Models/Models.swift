@@ -94,8 +94,16 @@ final class FoodItem {
     // expired (from the day after)
     var isExpired: Bool { daysLeft < 0 }
 
-    // expired or expiring soon
-    var isExpiringSoon: Bool { daysLeft <= Self.warningDays }
+    // from today to `days` days from now, expired ones not included
+    // (Home's "Expiring soon" and its "See all" list)
+    func expires(within days: Int) -> Bool { daysLeft >= 0 && daysLeft <= days }
+
+    // what the recipes pick on their own: expiring soon, or expired yesterday at most.
+    // people often still use something the day after, but after that we don't suggest it.
+    // (you can still tick an older one by hand in "Choose products", e.g. dry pasta)
+    func goodForRecipes(within days: Int) -> Bool {
+        daysLeft >= -1 && daysLeft <= days
+    }
 
     var status: ExpiryStatus {
         // if/else because 2...warningDays crashes when the setting is 1

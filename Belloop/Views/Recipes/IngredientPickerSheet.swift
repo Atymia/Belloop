@@ -48,6 +48,7 @@ struct IngredientPickerSheet: View {
     }
 
     private func selectExpiring() {
-        selection = Set(items.filter(\.isExpiringSoon).map(\.id))
+        // same rule as Home: nothing expired for more than a day
+        selection = Set(items.filter { $0.goodForRecipes(within: AppSettings.reminderDays) }.map(\.id))
     }
 }
