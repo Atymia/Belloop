@@ -17,6 +17,13 @@ struct AvatarView: View {
     @AppStorage(AppSettings.Key.avatarVersion) private var version = 0
     @State private var photo: UIImage?
 
+    // the two colors of the app icon (from the first Figma mockup, a bit brighter)
+    static let iconGradient = LinearGradient(
+        colors: [Color(red: 0x16 / 255, green: 0x7A / 255, blue: 0x6D / 255),
+                 Color(red: 0x28 / 255, green: 0x50 / 255, blue: 0x9C / 255)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+
     private var initials: String {
         name.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined().uppercased()
     }
@@ -25,21 +32,23 @@ struct AvatarView: View {
         ZStack {
             if let photo {
                 Image(uiImage: photo).resizable().scaledToFill()
-            } else if !icon.isEmpty {
-                Circle().fill(.tint.opacity(0.15))
-                Image(systemName: icon)
-                    .font(.system(size: size * 0.45, weight: .medium))
-                    .foregroundStyle(.tint)
-            } else if !initials.isEmpty {
-                Circle().fill(.tint.opacity(0.15))
-                Text(initials)
-                    .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.tint)
             } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(.tint)
+                // same gradient as the app icon, white on top: visible in light and dark mode
+                // (the pale circle from before almost disappeared on a dark background)
+                Circle().fill(Self.iconGradient)
+                Group {
+                    if !icon.isEmpty {
+                        Image(systemName: icon)
+                            .font(.system(size: size * 0.45, weight: .medium))
+                    } else if !initials.isEmpty {
+                        Text(initials)
+                            .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: size * 0.45, weight: .medium))
+                    }
+                }
+                .foregroundStyle(.white)
             }
         }
         .frame(width: size, height: size)
