@@ -26,16 +26,26 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 
 <img src="docs/home.png" width="280" align="right" alt="Belloop Home screen">
 
-- **Scan the barcode** and Belloop fills in the name, brand and photo from Open Food Facts.
-- **Scan the expiry date** printed on the pack with the camera, no typing.
+- **One scan for everything.** Tap Scan a product and the camera opens. Point it at the barcode, turn the pack, and the expiry date is read in the same scan, even when it's printed right next to the barcode. Name, brand and photo come from Open Food Facts, and you can still change them before saving. No barcode? Tap Enter manually.
 - **Pantry** with everything you have, sorted by date, with search.
-- **Reminders** a few days before a product expires (3 by default, you can change it).
-- **Home screen** that only shows what needs attention: what's about to expire and what already did ("did you use these?").
-- **Recipes** that use the products about to expire, plus anything else you pick from your pantry. Savory or sweet, with the recipes that use exactly your product first.
+- **One reminder a day**, at 9:00, for everything that's about to expire (3 days before by default, you can change it). The day after a product expires, the notification asks if you used it, and you can answer without opening the app.
+- **A Home that fits on one screen**, however full your fridge is. Expired products sit in one row at the top: tap it and swipe through them, answering one at a time. Then the recipe buttons, the three products expiring soonest, and See all for the rest.
+- **Recipes** that use the products about to expire, plus anything else you pick from your pantry. Savory or sweet, with the recipes that use exactly your product first. Anything that expired more than a day ago isn't suggested. Belloop can also read a recipe out loud while you cook.
 - **iCloud sync**: your pantry is saved in your own private iCloud and stays the same on all your devices.
 - **English and Italian**, recipes included (they're translated on the device).
+- **Help inside the app**: a short How to Use guide and answers to the usual questions, in Settings.
 
 <br clear="right">
+
+## What's new (November 2026)
+
+These came out of testing with our mentors and designers:
+
+- Scanning is one step instead of two, and the camera opens straight from the Home button.
+- The scanner no longer gets confused by the barcode numbers when the date is printed next to them, so there's no need to cover the barcode with a finger.
+- Home doesn't grow longer as the pantry grows, and the recipe buttons are always in view.
+- Sheets close with the X, like the rest of iOS.
+- A new icon and a new color for the whole app, both from our first Figma mockup.
 
 ## How it works
 
@@ -49,6 +59,7 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 | Matching products to recipe ingredients | Foundation Models (on device), plus Open Food Facts categories |
 | Recipe translation | Translation framework (on device) |
 | Reminders | Local notifications (`UserNotifications`) |
+| Reading recipes out loud | `AVSpeechSynthesizer`, the iPhone's own voices |
 
 Everything that reads your food (the camera, the translations, the ingredient matching) runs on the iPhone. The only things that leave the device are the barcode or name you search, sent to Open Food Facts, and the ingredient names sent to TheMealDB.
 
@@ -56,24 +67,26 @@ Everything that reads your food (the camera, the translations, the ingredient ma
 
 ```
 Belloop/
-├── FoodSaverApp.swift          app entry point, SwiftData + iCloud container
-├── ContentView.swift           the two tabs, Home and Pantry
-├── HomeView.swift              what's expiring, what expired, recipe ideas
-├── PantryView.swift            the full list, search and sort
-├── AddItemView.swift           add a product: scan, search or type
-├── ScannerViews.swift          camera scanner for barcodes and dates
-├── DateParser.swift            turns "12/05/26", "12 MAG 2026"... into a date
-├── OpenFoodFactsService.swift  product lookup and search
-├── MealDBService.swift         recipe search, ranking and sweet/savory
-├── IngredientNormalizer.swift  product name -> English recipe keyword
-├── RecipeSheet.swift           recipe list and recipe detail
-├── RecipeTranslator.swift      on-device translation of recipes
-├── NotificationManager.swift   expiry reminders
-├── ProfileView.swift           profile, iCloud status, country
-├── SettingsView.swift          reminder days and other settings
-├── Models.swift                the FoodItem model
-├── Localizable.xcstrings       English and Italian texts
-└── PrivacyInfo.xcprivacy       privacy manifest
+├── App/
+│   ├── BelloopApp.swift            app entry point, SwiftData + iCloud container
+│   ├── ContentView.swift           the two tabs and the navigation between screens
+│   └── AppSettings.swift           reminder days and the other saved settings
+├── Models/
+│   └── Models.swift                the FoodItem model and the expiry rules
+├── Views/
+│   ├── Home/                       Home, the See all list, the review of expired products
+│   ├── Pantry/                     the full list, product rows and product detail
+│   ├── AddItem/                    the add form and the camera scanner
+│   ├── Recipes/                    recipe list, recipe detail, product picker
+│   └── Profile/                    account, settings, help and about
+├── Services/
+│   ├── OpenFoodFactsService.swift  product lookup and search
+│   ├── MealDBService.swift         recipe search, ranking and sweet/savory
+│   ├── IngredientNormalizer.swift  product name -> English recipe keyword
+│   ├── RecipeTranslator.swift      on-device translation of recipes
+│   ├── NotificationManager.swift   the daily reminder and the "did you use it?" question
+│   └── DateParser.swift            turns "12/05/26", "12 MAG 2026"... into a date
+└── Resources/                      icon and colors, English and Italian texts, privacy manifest
 ```
 
 ## Privacy
