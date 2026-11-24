@@ -37,16 +37,6 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 
 <br clear="right">
 
-## What's new (November 2026)
-
-These came out of testing with our mentors and designers:
-
-- Scanning is one step instead of two, and the camera opens straight from the Home button.
-- The scanner no longer gets confused by the barcode numbers when the date is printed next to them, so there's no need to cover the barcode with a finger.
-- Home doesn't grow longer as the pantry grows, and the recipe buttons are always in view.
-- Sheets close with the X, like the rest of iOS.
-- A new icon and a new color for the whole app, both from our first Figma mockup.
-
 ## How it works
 
 | Part | What we use |
