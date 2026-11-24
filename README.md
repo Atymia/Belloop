@@ -97,3 +97,4 @@ Belloop is made by **High Five**, a team of students at the Apple Developer Acad
 
 - [@atymia](https://github.com/Atymia)
 - [@smailoujaoura](https://github.com/smailoujaoura)
+- [@AlinaSiddiqui](https://github.com/AlinaSiddiqui)
