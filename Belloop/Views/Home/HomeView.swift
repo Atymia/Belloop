@@ -1,12 +1,14 @@
 import SwiftUI
 import SwiftData
 
-// Home order (from my mentor's feedback):
+// Home order (changed after the second round of mentor feedback, because with a full
+// fridge the recipe buttons ended up way below the fold):
 // 1. scan button, the main action
-// 2. expired products + products about to expire
+// 2. expired products, one row and only when there are some (like "Software Update"
+//    at the top of Settings): it's something to do, so it stays where you see it
 // 3. recipes
+// 4. the 3 most urgent products, "See all" is in the header like in the App Store
 struct HomeView: View {
-    @Environment(\.modelContext) private var context
     @Query(sort: \FoodItem.expirationDate) private var items: [FoodItem]
     // read here so the list updates when the setting changes
     @AppStorage(AppSettings.Key.reminderDays) private var reminderDays = AppSettings.defaultReminderDays
@@ -17,20 +19,26 @@ struct HomeView: View {
     var onChoose: () -> Void
     var onProfile: () -> Void
 
-    @State private var reviewing: FoodItem?
+    @State private var reviewingExpired = false
+    @State private var showingAllExpiring = false
+
+    // how many expiring products Home shows, the rest are in "See all"
+    private static let previewLimit = 3
 
     // expired and not answered yet
     private var pastDate: [FoodItem] { items.filter { $0.isExpired && !$0.expiryReviewed } }
-    // from today to reminderDays
-    private var expiring: [FoodItem] { items.filter { $0.daysLeft >= 0 && $0.daysLeft <= reminderDays } }
-    // recipes use all the urgent stuff, expired ones included
-    private var forRecipes: [FoodItem] { items.filter { $0.daysLeft <= reminderDays } }
+    // from today to reminderDays (already sorted by date, so the most urgent come first)
+    private var expiring: [FoodItem] { items.filter { $0.expires(within: reminderDays) } }
+    // expiring soon + expired since yesterday at most (rule is in Models)
+    private var forRecipes: [FoodItem] { items.filter { $0.goodForRecipes(within: reminderDays) } }
 
-    // the products are already listed above, so no need to repeat them here
-    private var recipeCardText: LocalizedStringKey {
-        if !forRecipes.isEmpty { return "Cook something with what's about to expire." }
-        if !items.isEmpty { return "Nothing's about to expire. Pick anything from your pantry." }
-        return "Add a few products to get recipe ideas."
+    // a hint only when the first button is off, so you know why.
+    // with something to cook the buttons speak for themselves
+    private var recipeHint: LocalizedStringKey? {
+        if !forRecipes.isEmpty { return nil }
+        return items.isEmpty
+            ? "Add a few products to get recipe ideas."
+            : "Nothing's about to expire. Pick anything from your pantry."
     }
 
     private var freshText: LocalizedStringKey {
@@ -47,47 +55,34 @@ struct HomeView: View {
                         .listRowBackground(Color.clear)
                 }
 
-                // expired: ask what happened
+                // expired: one row, the questions are in the sheet
                 if !pastDate.isEmpty {
                     Section {
-                        ForEach(pastDate) { item in
-                            Button { reviewing = item } label: {
-                                ItemRow(item: item).foregroundStyle(.primary)
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button("Thrown away", systemImage: "trash", role: .destructive) {
-                                    ExpiryReview.apply(.thrownAway, to: item, in: context)
-                                }
-                                Button("Used", systemImage: "checkmark") {
-                                    ExpiryReview.apply(.used, to: item, in: context)
-                                }
-                                .tint(Color("StatusFresh"))
-                            }
-                        }
-                    } header: {
-                        Text("Did you use these?")
-                    } footer: {
-                        Text("These products are past their date. Tap one to update your pantry.")
+                        Button { reviewingExpired = true } label: { expiredRow }
+                            .badge(pastDate.count)   // count on the right, like in Settings
                     }
                 }
 
-                // expiring soon
-                Section("Expiring soon") {
+                // recipes
+                Section("Recipe ideas") { recipeCard }
+
+                // expiring soon, only the first 3
+                Section {
                     if expiring.isEmpty {
                         allFreshRow
                     } else {
-                        ForEach(expiring) { item in
+                        ForEach(expiring.prefix(Self.previewLimit)) { item in
                             NavigationLink(value: item) { ItemRow(item: item, dateOnly: true) }
                         }
                     }
+                } header: {
+                    expiringHeader
                 }
-
-                // recipes (with a header like Expiring soon, so the sections look the same)
-                Section("Recipe ideas") { recipeCard }
             }
             .listSectionSpacing(24)   // same gap between every section
             .navigationTitle("Home")
             .navigationDestination(for: FoodItem.self) { ItemDetailView(item: $0) }
+            .navigationDestination(isPresented: $showingAllExpiring) { ExpiringListView() }
             .toolbar {
                 // avatar button like in the App Store
                 ToolbarItem(placement: .topBarTrailing) {
@@ -96,18 +91,7 @@ struct HomeView: View {
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
-            .confirmationDialog(
-                Text("Did you use \(reviewing?.name ?? "")?"),
-                isPresented: Binding(get: { reviewing != nil }, set: { if !$0 { reviewing = nil } }),
-                titleVisibility: .visible,
-                presenting: reviewing
-            ) { item in
-                Button("Yes, I used it") { ExpiryReview.apply(.used, to: item, in: context) }
-                Button("No, I threw it away", role: .destructive) { ExpiryReview.apply(.thrownAway, to: item, in: context) }
-                Button("I still have it") { ExpiryReview.apply(.kept, to: item, in: context) }
-            } message: { _ in
-                Text("Products you used or threw away are removed from your pantry.")
-            }
+            .sheet(isPresented: $reviewingExpired) { ReviewExpiredSheet() }
         }
     }
 
@@ -136,6 +120,20 @@ struct HomeView: View {
         .controlSize(.large)
     }
 
+    // "Expiring soon" on the left, "See all" on the right from the 4th product on
+    // (in the header and not as a row, so it doesn't take a line of the list)
+    private var expiringHeader: some View {
+        HStack {
+            Text("Expiring soon")
+            Spacer()
+            if expiring.count > Self.previewLimit {
+                Button("See all") { showingAllExpiring = true }
+                    .fontWeight(.regular)
+                    .textCase(nil)
+            }
+        }
+    }
+
     // when nothing is expiring, just a line of text
     private var allFreshRow: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -147,12 +145,25 @@ struct HomeView: View {
         .accessibilityElement(children: .combine)
     }
 
+    // same icon as the urgent products, the number is on the right (badge)
+    private var expiredRow: some View {
+        Label {
+            Text("Past their date")
+                .foregroundStyle(.primary)   // otherwise the button paints it blue
+        } icon: {
+            Image(systemName: ExpiryStatus.urgent.symbol)
+                .foregroundStyle(ExpiryStatus.urgent.tint)
+        }
+    }
+
     // white card so the scan button stays the most visible thing
     private var recipeCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(recipeCardText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            if let recipeHint {
+                Text(recipeHint)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
 
             // recipes with the expiring products
             Button { onRecipes(forRecipes) } label: {
