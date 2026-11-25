@@ -8,10 +8,20 @@ import Foundation
 //   12 MAY 2026  MAG 2026  12 GEN 27    (month names in IT and EN)
 //   15 10 2027  15102027                (printed with dots, camera skips them)
 //   15.1O.2O27                          (letters read instead of numbers)
+//   28/11/2638 12                       (time or lot printed right after the date)
+//   28/1 1/26                           (dot printing, the camera reads a gap as a space)
 enum DateParser {
     static func parse(_ raw: String, now: Date = .now) -> Date? {
         let upper = fixDigits(raw.uppercased())
+        var found = dates(in: upper)
+        // dot printing (bottles, cans): the gaps between the dots can become spaces
+        // inside a number. try again with them glued back, only next to a / . -
+        let glued = glue(upper)
+        if glued != upper { found += dates(in: glued) }
+        return found.first { isPlausible($0, now: now) }
+    }
 
+    private static func dates(in upper: String) -> [Date] {
         // dates printed with dots (milk bottles, cans) often lose the separators,
         // so check them before removing long numbers
         let spaced = upper.replacingOccurrences(of: #"(?<!\d)(\d{2})\s+(\d{2})\s+(\d{4}|\d{2})(?!\d)"#,
@@ -19,12 +29,26 @@ enum DateParser {
         var found = compact(in: spaced, hasKeyword: hasDateKeyword(upper))
 
         // use / everywhere
-        let text = spaced
-            // remove numbers with 5+ digits (barcodes, lot numbers), a date never has them
-            .replacingOccurrences(of: #"\d{5,}"#, with: " ", options: .regularExpression)
-            .replacingOccurrences(of: #"[.,:\-\\]"#, with: "/", options: .regularExpression)
+        let separated = spaced.replacingOccurrences(of: #"[.,:\-\\]"#, with: "/", options: .regularExpression)
+        // remove numbers with 5+ digits (barcodes, lot numbers), a date never has them
+        let text = separated.replacingOccurrences(of: #"\d{5,}"#, with: " ", options: .regularExpression)
         found = candidates(in: text) + found
-        return found.first { isPlausible($0, now: now) }
+
+        // last try: on many bottles the time or the lot is printed right after the date, smaller,
+        // and the camera sticks it to the year ("28/11/2638"). the year 2638 is impossible,
+        // so read the first two digits as the year
+        for m in matches(stuck, in: separated) {
+            if let d = int(m[0]), let mo = int(m[1]), let y = int(m[2]),
+               let date = makeDate(expand(y), mo, d) { found.append(date) }
+        }
+        return found
+    }
+
+    // "28/1 1/26" -> "28/11/26", "2 8/11/2 6" -> "28/11/26". only a space between two single
+    // digits right next to a separator, so "12/5 2026" or a lot number don't change
+    private static func glue(_ text: String) -> String {
+        text.replacingOccurrences(of: #"(\d)\s+(\d)(?=\s*[/.\-])"#, with: "$1$2", options: .regularExpression)
+            .replacingOccurrences(of: #"(?<=[/.\-])(\s*\d)\s+(\d)(?!\d)"#, with: "$1$2", options: .regularExpression)
     }
 
     // words usually printed near the expiry date
@@ -73,6 +97,8 @@ enum DateParser {
     private static let ymd = #"(?<!\d)(\d{4})\s*/\s*(\d{1,2})\s*/\s*(\d{1,2})(?!\d)"#
     private static let dmy = #"(?<!\d)(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{4}|\d{2})(?!\d)"#
     private static let my  = #"(?<!\d)(\d{1,2})\s*/\s*(\d{4}|\d{2})(?!\d)"#
+    // like dmy, but the 2-digit year is followed by more digits (see above)
+    private static let stuck = #"(?<!\d)(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{2})(?=\d)"#
     private static let named = #"(?<!\d)(?:(\d{1,2})\s*/?\s*)?(JAN|GEN|FEB|MAR|APR|MAY|MAG|JUN|GIU|JUL|LUG|AUG|AGO|SEP|SET|OCT|OTT|NOV|DEC|DIC)[A-Z]*\s*/?\s*(\d{4}|\d{2})(?!\d)"#
 
     private static let months: [String: Int] = [
