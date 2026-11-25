@@ -268,7 +268,22 @@ struct AddItemView: View {
     // MARK: - Scan results
     private func use(_ found: ScanResult) {
         if let date = found.date { useScannedDate(date) }
-        if let code = found.barcode { useScannedBarcode(code) }
+        guard let code = found.barcode else { return }
+        switch found.lookup {
+        case .found, .unknown, .offline:
+            // the scanner already asked Open Food Facts, no need to ask again
+            keepBarcode(code)
+            if let product = found.product {
+                apply(product)
+            } else if found.lookup == .unknown {
+                message = String(localized: "This product isn't in the database yet. Type its name.")
+            } else {
+                message = String(localized: "Network error: enter the name by hand.")
+            }
+        case .storeLabel, .notAsked, .searching:
+            // store label, or closed before the answer came back: the usual way
+            useScannedBarcode(code)
+        }
     }
 
     private func useScannedDate(_ date: Date) {
@@ -279,15 +294,19 @@ struct AddItemView: View {
     private func useScannedBarcode(_ code: String) {
         // meat, fish, deli: the label is printed by the store, no database knows it
         guard !Self.isStoreLabel(code) else {
-            message = String(localized: "This is a label printed by the store (meat, fish, deli counter), so no database knows it. Type the name, then scan the date on the label.")
+            message = String(localized: "It's a shop label, so it's not in any database. Type its name.")
             return
         }
+        keepBarcode(code)
+        Task { await lookup(code) }
+    }
+
+    private func keepBarcode(_ code: String) {
         barcode = code
         // if we already have this barcode, ask now before filling everything
         if !allowDuplicate, let match = existingMatch(barcode: code, name: "") {
             duplicate = match
         }
-        Task { await lookup(code) }
     }
 
     // MARK: - Open Food Facts
@@ -296,7 +315,8 @@ struct AddItemView: View {
     // They aren't real product codes, so they're never in Open Food Facts (and the same code can be
     // a different product tomorrow, so we don't save it either).
     // 13 digits starting with 02 = the American version of the same thing (UPC number system 2).
-    private static func isStoreLabel(_ code: String) -> Bool {
+    // also used by the scanner, to say it right away
+    static func isStoreLabel(_ code: String) -> Bool {
         guard code.allSatisfy(\.isNumber) else { return false }
         switch code.count {
         case 13: return code.hasPrefix("2") || code.hasPrefix("02")
@@ -313,7 +333,7 @@ struct AddItemView: View {
             if let product = try await OpenFoodFactsService.product(for: code) {
                 apply(product)
             } else {
-                message = String(localized: "Product not found in the database: enter the name by hand.")
+                message = String(localized: "This product isn't in the database yet. Type its name.")
             }
         } catch {
             message = String(localized: "Network error: enter the name by hand.")

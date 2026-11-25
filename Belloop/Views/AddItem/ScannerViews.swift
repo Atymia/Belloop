@@ -10,6 +10,17 @@ enum ScanHint { case idle, holdSteady, chooseOne }
 struct ScanResult: Equatable {
     var barcode: String?
     var date: Date?
+    // what Open Food Facts said about the barcode. the scanner asks right away,
+    // so the label only turns green when the product really is in the database
+    var lookup: Lookup = .notAsked
+    var product: OFFProduct?
+
+    enum Lookup: Equatable { case notAsked, searching, found, unknown, storeLabel, offline }
+
+    // the product itself isn't compared: lookup already says if it changed
+    static func == (a: ScanResult, b: ScanResult) -> Bool {
+        a.barcode == b.barcode && a.date == b.date && a.lookup == b.lookup
+    }
 }
 
 // MARK: - Scanner
@@ -46,12 +57,23 @@ struct ScannerSheet: View {
         switch (result.barcode != nil, result.date != nil) {
         case (false, false):
             return "Point the camera at the barcode and the expiration date"
-        case (true, false):
-            return showTip ? tip : "Got the barcode. Now the expiration date, it's often on the top or on the back."
         case (false, true):
             return "Got the date. Now the barcode."
         case (true, true):
             return "Done"
+        case (true, false):
+            break
+        }
+        // barcode read, date still missing: say what the database answered
+        switch result.lookup {
+        case .unknown:
+            return "We don't know this product yet, you'll type its name after the scan. Now the expiration date."
+        case .storeLabel:
+            return "Shop label: you'll add the name later. Now the date."
+        case .offline:
+            return "No connection, so we couldn't check the product. You'll type its name after the scan. Now the expiration date."
+        case .notAsked, .searching, .found:
+            return showTip ? tip : "Got the barcode. Now the expiration date, it's often on the top or on the back."
         }
     }
 
@@ -62,7 +84,10 @@ struct ScannerSheet: View {
                     ZStack {
                         DataScannerView(
                             torchOn: torchOn,
-                            onBarcode: { result.barcode = $0 },
+                            onBarcode: { code in
+                                result.barcode = code
+                                Task { await check(code) }
+                            },
                             onDate: { result.date = $0 },
                             onHint: { hint = $0 }
                         )
@@ -131,9 +156,10 @@ struct ScannerSheet: View {
                 try? await Task.sleep(for: .seconds(5))
                 if !Task.isCancelled { showTip = true }
             }
-            // both found: a short pause so you see the two checkmarks, then on to the form
+            // both found (and the database has answered): a short pause so you see
+            // the two labels, then on to the form
             .onChange(of: result) { _, found in
-                guard found.barcode != nil, found.date != nil else { return }
+                guard found.barcode != nil, found.date != nil, found.lookup != .searching else { return }
                 Task {
                     try? await Task.sleep(for: .milliseconds(500))
                     finish()
@@ -142,24 +168,72 @@ struct ScannerSheet: View {
         }
     }
 
-    // two small labels at the top that tick when found
+    // two small labels at the top: green when found, orange when the barcode
+    // was read but the product isn't in the database
     private var progress: some View {
         HStack(spacing: 8) {
-            step("Barcode", symbol: "barcode", done: result.barcode != nil)
-            step("Expiration date", symbol: "calendar", done: result.date != nil)
+            barcodeStep
+            if result.date != nil {
+                step("Expiration date", symbol: "checkmark.circle.fill", color: Color("StatusFresh"), value: Text("Found"))
+            } else {
+                step("Expiration date", symbol: "calendar", color: .primary, value: Text("Not found yet"))
+            }
         }
         .padding(.top, 12)
     }
 
-    private func step(_ title: LocalizedStringKey, symbol: String, done: Bool) -> some View {
-        Label(title, systemImage: done ? "checkmark.circle.fill" : symbol)
+    @ViewBuilder
+    private var barcodeStep: some View {
+        switch result.lookup {
+        case .notAsked:
+            step("Barcode", symbol: "barcode", color: .primary, value: Text("Not found yet"))
+        case .searching:
+            step("Looking it up…", symbol: "magnifyingglass", color: .primary, value: Text("Checking the database"))
+        case .found:
+            step("Barcode", symbol: "checkmark.circle.fill", color: Color("StatusFresh"), value: Text("Found"))
+        case .unknown:
+            step("Unknown product", symbol: "questionmark.circle.fill", color: Color("StatusSoon"), value: Text("Not in the database"))
+        case .storeLabel:
+            step("Shop label", symbol: "tag.fill", color: Color("StatusSoon"), value: Text("Not in the database"))
+        case .offline:
+            step("No connection", symbol: "wifi.slash", color: Color("StatusSoon"), value: Text("Couldn't check the product"))
+        }
+    }
+
+    private func step(_ title: LocalizedStringKey, symbol: String, color: Color, value: Text) -> some View {
+        Label(title, systemImage: symbol)
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(done ? Color("StatusFresh") : .primary)
+            .foregroundStyle(color)
             .contentTransition(.symbolEffect(.replace))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .modifier(HintBackground())
-            .accessibilityValue(done ? Text("Found") : Text("Not found yet"))
+            .accessibilityValue(value)
+    }
+
+    // asks Open Food Facts while you look for the date, so the form doesn't have to ask again
+    private func check(_ code: String) async {
+        let haptics = UINotificationFeedbackGenerator()
+        // meat, fish, deli: the label is printed by the shop, no database knows it
+        if AddItemView.isStoreLabel(code) {
+            result.lookup = .storeLabel
+            haptics.notificationOccurred(.warning)
+            return
+        }
+        result.lookup = .searching
+        do {
+            if let product = try await OpenFoodFactsService.product(for: code) {
+                result.product = product
+                result.lookup = .found
+                haptics.notificationOccurred(.success)
+            } else {
+                result.lookup = .unknown
+                haptics.notificationOccurred(.warning)
+            }
+        } catch {
+            result.lookup = .offline
+            haptics.notificationOccurred(.warning)
+        }
     }
 
     private func finish() {
@@ -335,8 +409,7 @@ struct DataScannerView: UIViewControllerRepresentable {
                 guard let value = code.payloadStringValue else { continue }
                 barcodeNumbers.insert(value)
                 if !barcodeSent {
-                    barcodeSent = true
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    barcodeSent = true   // the haptic comes after the database check (ScannerSheet.check)
                     parent.onBarcode(value)
                 }
             }

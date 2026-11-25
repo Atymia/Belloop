@@ -1362,17 +1362,6 @@
         }
       }
     },
-    "Product not found in the database: enter the name by hand." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prodotto non trovato nel database: inserisci il nome a mano."
-          }
-        }
-      }
-    },
     "Product search isn't responding. You can still save the name as typed." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2007,17 +1996,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questa azione non si può annullare."
-          }
-        }
-      }
-    },
-    "This is a label printed by the store (meat, fish, deli counter), so no database knows it. Type the name, then scan the date on the label." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questa è un'etichetta stampata dal supermercato (carne, pesce, banco gastronomia), quindi nessun database la conosce. Scrivi il nome, poi scansiona la data sull'etichetta."
           }
         }
       }
@@ -2671,6 +2649,126 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inserisci a mano"
+          }
+        }
+      }
+    },
+    "We don't know this product yet, you'll type its name after the scan. Now the expiration date." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo prodotto non lo conosciamo ancora: scriverai il nome dopo la scansione. Ora la data di scadenza."
+          }
+        }
+      }
+    },
+    "No connection, so we couldn't check the product. You'll type its name after the scan. Now the expiration date." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente connessione, quindi non abbiamo potuto controllare il prodotto. Scriverai il nome dopo la scansione. Ora la data di scadenza."
+          }
+        }
+      }
+    },
+    "Looking it up…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerco il prodotto…"
+          }
+        }
+      }
+    },
+    "Checking the database" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo nel database"
+          }
+        }
+      }
+    },
+    "Unknown product" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prodotto sconosciuto"
+          }
+        }
+      }
+    },
+    "No connection" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna connessione"
+          }
+        }
+      }
+    },
+    "Not in the database" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è nel database"
+          }
+        }
+      }
+    },
+    "Couldn't check the product" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo non riuscito"
+          }
+        }
+      }
+    },
+    "This product isn't in the database yet. Type its name." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo prodotto non è ancora nel database. Scrivi tu il nome."
+          }
+        }
+      }
+    },
+    "Shop label: you'll add the name later. Now the date." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etichetta del negozio: il nome lo scrivi dopo. Ora la data."
+          }
+        }
+      }
+    },
+    "Shop label" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etichetta del negozio"
+          }
+        }
+      }
+    },
+    "It's a shop label, so it's not in any database. Type its name." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È un'etichetta del negozio, quindi non è in nessun database. Scrivi tu il nome."
           }
         }
       }
