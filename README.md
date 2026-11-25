@@ -91,7 +91,7 @@ No account, no tracking, no ads, no analytics. Your pantry lives on your iPhone 
 
 ## Credits
 
-- Product data from [Open Food Facts](https://world.openfoodfacts.org), available under the Open Database License.
+- Product data from [Open Food Facts](https://world.openfoodfacts.org), available under the the [Open Database License](https://opendatacommons.org/licenses/odbl/1-0/).
 - Recipes and photos from [TheMealDB](https://www.themealdb.com).
 
 ## The team
