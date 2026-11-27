@@ -1,11 +1,14 @@
 import SwiftData
 import UserNotifications
 
-// Few notifications: at most one per type per day, at 9am.
-// - "expiring": everything whose reminder falls on that day (N days before, N from settings)
-// - "expired": everything that passed its date the day before
-// With one product the notification names it (and "expired" has Used / Threw away buttons),
-// with more it stays generic and opens the app.
+// One notification a day at most, at 9am, however many products there are:
+// - "soon": every morning from N days before the date (N from settings) to the day itself
+// - "past": every morning after the date, until you answer (used it, threw it away,
+//   still have it) or delete the product
+// With one product the notification names it ("past" has the Used / Threw away / Still have it
+// buttons), with more it stays generic and opens the app on Home.
+// iOS keeps at most 64 waiting notifications, so we plan the next 30 days and rebuild them
+// every time the pantry changes or the app opens.
 enum NotificationManager {
     enum Action {
         static let used = "EXPIRY_USED"
@@ -67,75 +70,84 @@ enum NotificationManager {
 
     // iOS keeps max 64 waiting notifications per app, stay below it
     private static let maxPending = 60
+    // how far ahead we plan. opening the app plans again, so this is plenty
+    private static let daysAhead = 30
 
     private static func rebuild(_ products: [Product], _ settings: Settings) async {
         let center = UNUserNotificationCenter.current()
         center.removeAllPendingNotificationRequests()   // the app only has these, so start from zero
         guard settings.notificationsOn else { return }
 
-        // group the products by the day their notification goes out
         let cal = Calendar.current
-        var expiring: [Date: [Product]] = [:]
-        var expired: [Date: [Product]] = [:]
-        for product in products {
-            let day = cal.startOfDay(for: product.expiration)
-            if let reminderDay = cal.date(byAdding: .day, value: -settings.reminderDays, to: day) {
-                expiring[reminderDay, default: []].append(product)
-            }
-            if settings.askAfterExpiry, !product.reviewed, let dayAfter = cal.date(byAdding: .day, value: 1, to: day) {
-                expired[dayAfter, default: []].append(product)
-            }
-        }
+        let now = Date()
+        let today = cal.startOfDay(for: now)
+        // the first 9am still to come: today, or tomorrow if it's already past 9
+        let first = cal.component(.hour, from: now) < 9 ? 0 : 1
 
-        var requests: [(Date, UNNotificationRequest)] = []
-        for (day, list) in expiring {
-            if let request = request(id: "expiring-\(key(day))", content: expiringContent(list, days: settings.reminderDays), on: day) {
-                requests.append((day, request))
+        var requests: [UNNotificationRequest] = []
+        for offset in first..<(first + daysAhead) {
+            guard let day = cal.date(byAdding: .day, value: offset, to: today) else { continue }
+            var soon: [(Product, Int)] = []   // expires within the reminder days, with days left
+            var past: [(Product, Int)] = []   // past its date and not answered yet, with days since
+            for product in products {
+                let expiry = cal.startOfDay(for: product.expiration)
+                guard let left = cal.dateComponents([.day], from: day, to: expiry).day else { continue }
+                if (0...settings.reminderDays).contains(left) {
+                    soon.append((product, left))
+                } else if left < 0, settings.askAfterExpiry, !product.reviewed {
+                    past.append((product, -left))
+                }
             }
-        }
-        for (day, list) in expired {
-            if let request = request(id: "expired-\(key(day))", content: expiredContent(list), on: day) {
-                requests.append((day, request))
+            if let content = content(soon: soon, past: past),
+               let request = request(id: "day-\(key(day))", content: content, on: day) {
+                requests.append(request)
             }
         }
 
         // ask for permission only when there's really something to send
         guard !requests.isEmpty, await isAuthorized(center) else { return }
 
-        // the closest ones first, in case there are more than iOS allows
-        for (_, request) in requests.sorted(by: { $0.0 < $1.0 }).prefix(maxPending) {
+        // already in date order, the closest first in case there are more than iOS allows
+        for request in requests.prefix(maxPending) {
             try? await center.add(request)
         }
     }
 
     // MARK: Texts
-    private static func expiringContent(_ list: [Product], days: Int) -> UNMutableNotificationContent {
+    // the one notification of the day, written for what's in it
+    private static func content(soon: [(Product, Int)], past: [(Product, Int)]) -> UNMutableNotificationContent? {
         let content = UNMutableNotificationContent()
-        if list.count == 1, let product = list.first {
-            content.title = days == 1
-                ? String(localized: "\(product.name) expires tomorrow")
-                : String(localized: "\(product.name) expires in \(days) days")
+        switch (soon.count, past.count) {
+        case (0, 0):
+            return nil
+        case (1, 0):
+            let (product, days) = soon[0]
+            switch days {
+            case 0: content.title = String(localized: "\(product.name) expires today")
+            case 1: content.title = String(localized: "\(product.name) expires tomorrow")
+            default: content.title = String(localized: "\(product.name) expires in \(days) days")
+            }
             content.body = String(localized: "There's still time to cook something with it.")
             content.userInfo = ["itemID": product.id]
-        } else {
-            content.title = String(localized: "A few things expire soon")
-            content.body = String(localized: "Have a look before they go to waste.")
-        }
-        content.sound = .default
-        return content
-    }
-
-    private static func expiredContent(_ list: [Product]) -> UNMutableNotificationContent {
-        let content = UNMutableNotificationContent()
-        if list.count == 1, let product = list.first {
+        case (0, 1):
+            let (product, days) = past[0]
+            let date = product.expiration.formatted(.dateTime.day().month())
             content.title = String(localized: "Did you finish \(product.name)?")
-            content.body = String(localized: "It passed its date yesterday.")
+            content.body = days == 1
+                ? String(localized: "It passed its date yesterday.")
+                : String(localized: "Its date was \(date).")
             content.userInfo = ["itemID": product.id]
             content.categoryIdentifier = expiredCategory   // Used it / Threw it away / Still have it
-        } else {
-            // a notification can't have buttons for each product: a tap opens Home ("Did you use these?")
+        case (_, 0):
+            content.title = String(localized: "A few things expire soon")
+            content.body = String(localized: "Have a look before they go to waste.")
+        case (0, _):
+            // a notification can't have buttons for each product: a tap opens Home ("Past their date")
             content.title = String(localized: "Some products passed their date")
             content.body = String(localized: "Did you use them, or did they end up in the bin?")
+        default:
+            content.title = String(localized: "Your pantry needs a look")
+            content.body = String(localized: "Some things expire soon, and some are already past their date.")
         }
         content.sound = .default
         return content

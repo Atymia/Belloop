@@ -20,6 +20,9 @@ struct AddItemView: View {
     @State private var expiration = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
     @State private var barcode: String?
     @State private var imageData: Data?
+    // the product photo is still downloading (save waits for it a moment)
+    @State private var imageLoading = false
+    @State private var saving = false   // a second tap while waiting doesn't add it twice
 
     // info from OFF or an older item, used when saving to get the english recipe keyword
     @State private var filledName: String?
@@ -33,6 +36,10 @@ struct AddItemView: View {
     @State private var message: String?
     // the date read by the camera: while the picker still shows it, a note says so
     @State private var scannedDate: Date?
+
+    // already past its date: ask before adding it
+    @State private var expiredWarning = false
+    @State private var allowExpired = false
 
     // duplicate alert
     @State private var duplicate: FoodItem?
@@ -175,7 +182,7 @@ struct AddItemView: View {
                     Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(role: .confirm, action: save)
+                    Button(role: .confirm) { Task { await saveWhenReady() } }
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
@@ -204,6 +211,15 @@ struct AddItemView: View {
                 Button("Don't Add", role: .cancel) { dismiss() }
             } message: { item in
                 Text("\(item.name) is already in your pantry and expires on \(item.expirationDate.formatted(date: .abbreviated, time: .omitted)). Do you want to add another one?")
+            }
+            .alert("Already past its date", isPresented: $expiredWarning) {
+                Button("Add Anyway") {
+                    allowExpired = true
+                    save()
+                }
+                Button("Change Date", role: .cancel) { }
+            } message: {
+                Text("\(name.trimmingCharacters(in: .whitespaces)) expired on \(expiration.formatted(date: .abbreviated, time: .omitted)). Do you still want to add it?")
             }
             .onChange(of: photoItem) { _, newItem in
                 guard let newItem else { return }
@@ -273,6 +289,8 @@ struct AddItemView: View {
         case .found, .unknown, .offline:
             // the scanner already asked Open Food Facts, no need to ask again
             keepBarcode(code)
+            // the scanner already downloaded the photo with the name
+            if let photo = found.photo, imageData == nil { imageData = photo }
             if let product = found.product {
                 apply(product)
             } else if found.lookup == .unknown {
@@ -351,7 +369,9 @@ struct AddItemView: View {
 
         // keep the user's photo if they took one
         if imageData == nil, let url = product.imageURL {
+            imageLoading = true
             Task {
+                defer { imageLoading = false }
                 if let (data, _) = try? await URLSession.shared.data(from: url),
                    let image = UIImage(data: data), imageData == nil {
                     imageData = image.downscaledJPEG()
@@ -382,8 +402,28 @@ struct AddItemView: View {
     }
 
     // MARK: - Save
+    // the product photo can still be downloading if you save right after the name appears:
+    // wait for it a moment (max 2 seconds) so it's saved with the product
+    private func saveWhenReady() async {
+        guard !saving else { return }
+        saving = true
+        defer { saving = false }
+        var waited = 0
+        while imageData == nil, imageLoading, waited < 20 {
+            try? await Task.sleep(for: .milliseconds(100))
+            waited += 1
+        }
+        save()
+    }
+
     private func save() {
         let finalName = name.trimmingCharacters(in: .whitespaces)
+        // maybe the date is wrong, maybe it really is expired: ask first
+        let cal = Calendar.current
+        if !allowExpired, cal.startOfDay(for: expiration) < cal.startOfDay(for: .now) {
+            expiredWarning = true
+            return
+        }
         if !allowDuplicate, let match = existingMatch(barcode: barcode, name: finalName) {
             saveAfterConfirm = true   // so "Add Another" can save directly
             duplicate = match
