@@ -439,10 +439,12 @@ struct AddItemView: View {
         let categories = hintsValid ? categoryHint : []
         item.categoryTags = categories
         Task {
-            item.recipeKeyword = await IngredientNormalizer.englishKeyword(
+            let keyword = await IngredientNormalizer.englishKeyword(
                 for: finalName, englishName: english, categories: categories
             )
-            item.recipeKeywordVersion = IngredientNormalizer.version
+            item.recipeKeyword = keyword.value
+            // not checked (no connection): the recipe screen works it out again
+            item.recipeKeywordVersion = keyword.checked ? IngredientNormalizer.version : 0
         }
         dismiss()
     }
