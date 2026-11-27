@@ -99,9 +99,9 @@ struct ScannerSheet: View {
                             // what's been found so far
                             progress
                             Spacer()
-                            // just text on the camera, no panel: it explains, it isn't a button.
-                            // white with a soft shadow, and the dark fade at the bottom
-                            // keeps it readable on white packages too
+                            // just text on the camera, no panel and no dark fade behind it:
+                            // it explains, it isn't a button. the soft shadow keeps it readable
+                            // on white packages
                             Text(hintText)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.white)
@@ -115,7 +115,6 @@ struct ScannerSheet: View {
                             }
                         }
                         .padding(.bottom, 24)
-                        .background(alignment: .bottom) { bottomFade }
                     }
                 } else {
                     ContentUnavailableView {
@@ -169,15 +168,6 @@ struct ScannerSheet: View {
                 }
             }
         }
-    }
-
-    // dark at the bottom edge, clear above: like the bottom of the Camera app, but see-through
-    private var bottomFade: some View {
-        LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .top, endPoint: .bottom)
-            .frame(height: 220)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
     }
 
     // yellow when it's on, like the flash in Camera: before, you only noticed from the light
