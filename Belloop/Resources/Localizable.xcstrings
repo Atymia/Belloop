@@ -1,6 +1,17 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ expired on %@. Do you still want to add it?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ è scaduto il %2$@. Vuoi aggiungerlo lo stesso?"
+          }
+        }
+      }
+    },
     "%@ expires in %lld days" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8,6 +19,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ scade tra %2$lld giorni"
+          }
+        }
+      }
+    },
+    "%@ expires today" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ scade oggi"
           }
         }
       }
@@ -166,6 +188,17 @@
         }
       }
     },
+    "Add Anyway" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi lo stesso"
+          }
+        }
+      }
+    },
     "Add a few products to get recipe ideas." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -254,6 +287,17 @@
         }
       }
     },
+    "Already past its date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È già scaduto"
+          }
+        }
+      }
+    },
     "Also from your pantry: %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -320,13 +364,13 @@
         }
       }
     },
-    "Before the date you get a reminder, and the product shows up on Home under Expiring soon. The day after, you'll be asked if you used it." : {
+    "Every morning before the date you get a reminder, and the product shows up on Home under Expiring soon. Once it's past its date, Belloop asks if you used it until you answer." : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prima della scadenza ricevi un promemoria e il prodotto compare in Home sotto In scadenza. Il giorno dopo ti viene chiesto se l'hai usato."
+            "value" : "Ogni mattina prima della scadenza ricevi un promemoria e il prodotto compare in Home sotto In scadenza. Quando è scaduto, Belloop ti chiede se l'hai usato finché non rispondi."
           }
         }
       }
@@ -360,6 +404,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Annulla"
+          }
+        }
+      }
+    },
+    "Change Date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia data"
           }
         }
       }
@@ -1812,6 +1867,17 @@
         }
       }
     },
+    "Some things expire soon, and some are already past their date." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alcune cose stanno per scadere, altre sono già scadute."
+          }
+        }
+      }
+    },
     "Something went wrong. Try again." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2187,13 +2253,13 @@
         }
       }
     },
-    "You'll get one reminder at 9:00 for everything that's about to expire, and a question the day after something passes its date." : {
+    "Every morning at 9:00 you get one notification, even with many products: in the days before a date, and after it until you tell Belloop what happened." : {
       "extractionState" : "manual",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle 9:00 ricevi un solo promemoria per tutto quello che sta per scadere, e una domanda il giorno dopo che qualcosa è scaduto."
+            "value" : "Ogni mattina alle 9:00 ricevi una sola notifica, anche con tanti prodotti: nei giorni prima della scadenza e, dopo, finché non dici a Belloop com'è andata."
           }
         }
       }
@@ -2248,6 +2314,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La tua dispensa è salvata nel tuo iCloud ed è uguale su tutti i tuoi dispositivi. Solo tu puoi vederla."
+          }
+        }
+      }
+    },
+    "Your pantry needs a look" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dai un'occhiata alla dispensa"
           }
         }
       }
@@ -2353,12 +2430,12 @@
         }
       }
     },
-    "At 9:00, a few days before the date. You choose how many in Settings, from 1 to 7. The day after the date, Belloop asks if you used the product." : {
+    "Every morning at 9:00, from a few days before the date (you choose how many in Settings, from 1 to 7) to the day itself. After that, Belloop asks every morning if you used the product, until you answer. However many products you have, it's one notification a day." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle 9:00, qualche giorno prima della scadenza. Quanti giorni lo scegli tu nelle Impostazioni, da 1 a 7. Il giorno dopo la scadenza, Belloop ti chiede se hai usato il prodotto."
+            "value" : "Ogni mattina alle 9:00, da qualche giorno prima della scadenza (quanti lo scegli tu nelle Impostazioni, da 1 a 7) fino al giorno stesso. Dopo, Belloop ti chiede ogni mattina se hai usato il prodotto, finché non rispondi. Anche con tanti prodotti, è sempre una sola notifica al giorno."
           }
         }
       }
@@ -2629,6 +2706,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cerca prodotti"
+          }
+        }
+      }
+    },
+    "Its date was %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La data di scadenza era il %@."
           }
         }
       }

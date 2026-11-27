@@ -28,7 +28,7 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 
 - **One scan for everything.** Tap Scan a product and the camera opens. Point it at the barcode, turn the pack, and the expiry date is read in the same scan, even when it's printed right next to the barcode. Name, brand and photo come from Open Food Facts, and you can still change them before saving. No barcode? Tap Enter manually.
 - **Pantry** with everything you have, sorted by date, with search.
-- **One reminder a day**, at 9:00, for everything that's about to expire (3 days before by default, you can change it). The day after a product expires, the notification asks if you used it, and you can answer without opening the app.
+- **One notification a day**, at 9:00, however many products you have. It starts 3 days before the date (you can change it) and comes every morning up to the day itself. After the date it asks every morning if you used the product, until you answer, and you can answer without opening the app. Add something that's already expired and Belloop asks first.
 - **A Home that fits on one screen**, however full your fridge is. Expired products sit in one row at the top: tap it and swipe through them, answering one at a time. Then the recipe buttons, the three products expiring soonest, and See all for the rest.
 - **Recipes** that use the products about to expire, plus anything else you pick from your pantry. Savory or sweet, with the recipes that use exactly your product first. Anything that expired more than a day ago isn't suggested. Belloop can also read a recipe out loud while you cook.
 - **iCloud sync**: your pantry is saved in your own private iCloud and stays the same on all your devices.

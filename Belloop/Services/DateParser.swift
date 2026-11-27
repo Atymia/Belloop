@@ -10,9 +10,12 @@ import Foundation
 //   15.1O.2O27                          (letters read instead of numbers)
 //   28/11/2638 12                       (time or lot printed right after the date)
 //   28/1 1/26                           (dot printing, the camera reads a gap as a space)
+//   08 2027 06:12 604108                (month and year with a space, then time and lot)
 enum DateParser {
     static func parse(_ raw: String, now: Date = .now) -> Date? {
+        // a time printed after the date ("06:12") would look like month/year: take it out first
         let upper = fixDigits(raw.uppercased())
+            .replacingOccurrences(of: time, with: " ", options: .regularExpression)
         var found = dates(in: upper)
         // dot printing (bottles, cans): the gaps between the dots can become spaces
         // inside a number. try again with them glued back, only next to a / . -
@@ -97,6 +100,11 @@ enum DateParser {
     private static let ymd = #"(?<!\d)(\d{4})\s*/\s*(\d{1,2})\s*/\s*(\d{1,2})(?!\d)"#
     private static let dmy = #"(?<!\d)(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{4}|\d{2})(?!\d)"#
     private static let my  = #"(?<!\d)(\d{1,2})\s*/\s*(\d{4}|\d{2})(?!\d)"#
+    // month and year with only a space between them ("08 2027", dot printing). 4-digit year only,
+    // and not right after another number, or "15 10 2027" would become October
+    private static let mySpaced = #"(?<!\d\s)(?<![\d/])(0?[1-9]|1[0-2])\s+(20\d{2})(?![\d/])"#
+    // a time like 06:12 or 14:30 (not 12:05:2026, that's a date)
+    private static let time = #"(?<![\d:/.])([01]?\d|2[0-3])\s*:\s*[0-5]\d(?![\d:])"#
     // like dmy, but the 2-digit year is followed by more digits (see above)
     private static let stuck = #"(?<!\d)(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{2})(?=\d)"#
     private static let named = #"(?<!\d)(?:(\d{1,2})\s*/?\s*)?(JAN|GEN|FEB|MAR|APR|MAY|MAG|JUN|GIU|JUL|LUG|AUG|AGO|SEP|SET|OCT|OTT|NOV|DEC|DIC)[A-Z]*\s*/?\s*(\d{4}|\d{2})(?!\d)"#
@@ -121,6 +129,10 @@ enum DateParser {
         for m in matches(my, in: text) {
             if let mo = int(m[0]), let y = int(m[1]),
                let date = endOfMonth(expand(y), mo) { result.append(date) }
+        }
+        for m in matches(mySpaced, in: text) {
+            if let mo = int(m[0]), let y = int(m[1]),
+               let date = endOfMonth(y, mo) { result.append(date) }
         }
         for m in matches(named, in: text) {
             guard let key = m[1], let mo = months[key], let y = int(m[2]) else { continue }

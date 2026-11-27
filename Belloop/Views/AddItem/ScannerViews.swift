@@ -14,6 +14,8 @@ struct ScanResult: Equatable {
     // so the label only turns green when the product really is in the database
     var lookup: Lookup = .notAsked
     var product: OFFProduct?
+    // the product photo, downloaded with the name so the form has both at the same time
+    var photo: Data?
 
     enum Lookup: Equatable { case notAsked, searching, found, unknown, storeLabel, offline }
 
@@ -156,12 +158,16 @@ struct ScannerSheet: View {
                 try? await Task.sleep(for: .seconds(5))
                 if !Task.isCancelled { showTip = true }
             }
-            // both found (and the database has answered): a short pause so you see
-            // the two labels, then on to the form
+            // both found: a short pause so you see the two labels, then on to the form.
+            // only once the database has answered, otherwise when the date came first the form
+            // opened before the product was ready and had to ask again (sometimes without the photo).
+            // if the database is slow, go on after 4 seconds and the form asks again
             .onChange(of: result) { _, found in
-                guard found.barcode != nil, found.date != nil, found.lookup != .searching else { return }
+                guard found.barcode != nil, found.date != nil else { return }
+                let answered = found.lookup != .notAsked && found.lookup != .searching
+                let wait: Duration = answered ? .milliseconds(500) : .seconds(4)
                 Task {
-                    try? await Task.sleep(for: .milliseconds(500))
+                    try? await Task.sleep(for: wait)
                     finish()
                 }
             }
@@ -224,6 +230,7 @@ struct ScannerSheet: View {
         do {
             if let product = try await OpenFoodFactsService.product(for: code) {
                 result.product = product
+                result.photo = await Self.photo(from: product.imageURL)
                 result.lookup = .found
                 haptics.notificationOccurred(.success)
             } else {
@@ -234,6 +241,16 @@ struct ScannerSheet: View {
             result.lookup = .offline
             haptics.notificationOccurred(.warning)
         }
+    }
+
+    // small and quick: if the image server is slow, the product is saved without it
+    private static func photo(from url: URL?) async -> Data? {
+        guard let url else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 4
+        guard let (data, _) = try? await URLSession.shared.data(for: request),
+              let image = UIImage(data: data) else { return nil }
+        return image.downscaledJPEG()
     }
 
     private func finish() {
@@ -413,12 +430,23 @@ struct DataScannerView: UIViewControllerRepresentable {
                     parent.onBarcode(value)
                 }
             }
-            for (id, candidate) in candidates where barcodeZones.values.contains(where: { $0.intersects(candidate.overlay.frame) }) {
+            for (id, candidate) in candidates where isOnBarcode(candidate.overlay.frame) {
                 drop(id)
             }
             guard !dateSent else { return }
             for item in items { if case .text = item { consider(item, in: scanner) } }
             evaluate()
+        }
+
+        // text mostly on top of the bars. a date line that only touches the barcode
+        // (the Nesquik jar: "08 2027 06:12 604108" runs under it) is still read:
+        // before, any contact threw it away and people had to cover the barcode with a finger
+        private func isOnBarcode(_ rect: CGRect) -> Bool {
+            guard rect.width > 0, rect.height > 0 else { return false }
+            return barcodeZones.values.contains { zone in
+                let overlap = zone.intersection(rect)
+                return !overlap.isNull && overlap.width * overlap.height > rect.width * rect.height * 0.5
+            }
         }
 
         // the line of digits under the bars ("8 001234 567890"), or a piece of it
@@ -431,7 +459,7 @@ struct DataScannerView: UIViewControllerRepresentable {
         private func consider(_ item: RecognizedItem, in scanner: DataScannerViewController) {
             guard case .text(let text) = item else { return }
             let rect = Self.rect(for: item.bounds)
-            guard !barcodeZones.values.contains(where: { $0.intersects(rect) }),
+            guard !isOnBarcode(rect),
                   !isBarcodeNumber(text.transcript),
                   let date = DateParser.parse(text.transcript) else {
                 drop(item.id)   // not a date (anymore), remove the box
