@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import Translation
 
 @Generable
 struct ProductName {
@@ -20,17 +21,31 @@ enum IngredientNormalizer {
     // v2: pesto stays pesto (not basil)
     // v3: scanned products also save their OFF categories
     // v5: the model names the product itself (corn cakes, hot chocolate mix), never its ingredients
-    static let version = 5
+    // v6: names typed by hand are checked against TheMealDB's ingredients
+    //     ("Latte" became the coffee drink and found no recipes, it's milk)
+    static let version = 6
+
+    struct Keyword: Sendable {
+        let value: String
+        // false = no connection, so we couldn't check it: it's worked out again next time
+        let checked: Bool
+    }
 
     // with Apple Intelligence: the model says what the product is (using the database info too).
     // without it: OFF english name, OFF category, small dictionary, the name as is
-    static func englishKeyword(for name: String, englishName: String?, categories: [String]) async -> String {
-        if let viaModel = await viaFoundationModel(name, englishName: englishName, categories: categories) {
-            return viaModel
+    static func englishKeyword(for name: String, englishName: String?, categories: [String]) async -> Keyword {
+        let viaModel = await viaFoundationModel(name, englishName: englishName, categories: categories)
+
+        // scanned products: if the keyword finds nothing, the recipe search
+        // still tries their OFF categories, so this order is enough
+        if let category = categories.last, !category.isEmpty {
+            let value = viaModel ?? clean(englishName) ?? category
+            return Keyword(value: value, checked: true)
         }
-        if let englishName, !englishName.isEmpty { return englishName.lowercased() }
-        if let category = categories.last, !category.isEmpty { return category }
-        return dictionaryTranslation(name)
+
+        // typed by hand there's nothing else to fall back on,
+        // so we keep the first guess that is really a TheMealDB ingredient
+        return await checkedKeyword(for: name, guesses: [viaModel, clean(englishName), dictionaryHit(name)])
     }
 
     // finds the keyword for each item and saves it.
@@ -51,14 +66,66 @@ enum IngredientNormalizer {
                     item.categoryTags = product.categories
                     english = product.englishName
                 }
-                keyword = await englishKeyword(for: item.name, englishName: english, categories: item.categoryTags)
-                item.recipeKeyword = keyword
-                item.recipeKeywordVersion = version
+                let found = await englishKeyword(for: item.name, englishName: english, categories: item.categoryTags)
+                keyword = found.value
+                item.recipeKeyword = found.value
+                item.recipeKeywordVersion = found.checked ? version : 0
             }
             result.append(IngredientInfo(name: item.name, keyword: keyword, categories: item.categoryTags,
                                          daysLeft: item.daysLeft))
         }
         return result
+    }
+
+    // MARK: - Checking names typed by hand
+    // the guesses in order, then Apple's translator, then the name as it is.
+    // none of them is an ingredient: keep the first guess, the recipe search can still
+    // look for it in the recipe titles (pesto) or say it found nothing
+    private static func checkedKeyword(for name: String, guesses: [String?]) async -> Keyword {
+        let guesses = guesses.compactMap { $0 }
+        let fallback = guesses.first ?? clean(name) ?? name
+
+        guard let catalog = try? await MealDBCatalog.shared.ingredientNames(), !catalog.isEmpty else {
+            return Keyword(value: fallback, checked: false)
+        }
+        func isIngredient(_ word: String) -> Bool {
+            IngredientMatcher.bestMatch(for: word, in: catalog) != nil
+        }
+
+        if let known = guesses.first(where: isIngredient) {
+            return Keyword(value: known, checked: true)
+        }
+        let translated = await translatedToEnglish(name)
+        if let translated = clean(translated), isIngredient(translated) {
+            return Keyword(value: translated, checked: true)
+        }
+        if let plain = clean(name), isIngredient(plain) {
+            return Keyword(value: plain, checked: true)
+        }
+        return Keyword(value: fallback, checked: true)
+    }
+
+    // the phone's language, if it isn't english (the name is probably written in it)
+    private static var userLanguage: Locale.Language? {
+        let language = Locale.current.language
+        guard let code = language.languageCode, code != .english else { return nil }
+        return language
+    }
+
+    // Apple's translator, only if the language is already on the phone:
+    // here there's no screen to ask for the download (the recipe sheet asks for it)
+    private static func translatedToEnglish(_ text: String) async -> String? {
+        guard let source = userLanguage else { return nil }
+        let english = Locale.Language(identifier: "en")
+        guard await LanguageAvailability().status(from: source, to: english) == .installed else { return nil }
+        let session = TranslationSession(installedSource: source, target: english)
+        return try? await session.translate(text).targetText
+    }
+
+    private static func clean(_ text: String?) -> String? {
+        guard let value = text?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+              !value.isEmpty else { return nil }
+        return value
     }
 
     // MARK: - Apple Intelligence (if available)
@@ -71,12 +138,18 @@ enum IngredientNormalizer {
             A product is never one of its ingredients: "Gallette di mais al cioccolato" are \
             chocolate corn cakes (a snack), not corn and not chocolate; "Ciobar" is a hot chocolate mix \
             (a drink), not chocolate; a protein bar with nuts is a snack, not nuts. \
-            Prepared foods keep their own name: "Pesto alla genovese" is pesto, not basil.
+            Prepared foods keep their own name: "Pesto alla genovese" is pesto, not basil. \
+            Read the name in the person's language first, a word can mean something else in English: \
+            in Italian "latte" is milk, not a coffee drink.
             """)
         // the database info helps a lot with brand names
         var prompt = "Product: \(name)"
         if let englishName, !englishName.isEmpty { prompt += "\nEnglish name: \(englishName)" }
         if !categories.isEmpty { prompt += "\nCategories: \(categories.suffix(4).joined(separator: ", "))" }
+        if let code = userLanguage?.languageCode?.identifier,
+           let language = Locale(identifier: "en").localizedString(forLanguageCode: code) {
+            prompt += "\nPerson's language: \(language)"
+        }
 
         guard let response = try? await session.respond(to: prompt, generating: ProductName.self) else { return nil }
         let value = response.content.product.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -99,8 +172,8 @@ enum IngredientNormalizer {
         ("miele", "honey")
     ]
 
-    private static func dictionaryTranslation(_ name: String) -> String {
+    private static func dictionaryHit(_ name: String) -> String? {
         let lower = name.lowercased()
-        return dictionary.first { lower.contains($0.it) }?.en ?? lower
+        return dictionary.first { lower.contains($0.it) }?.en
     }
 }

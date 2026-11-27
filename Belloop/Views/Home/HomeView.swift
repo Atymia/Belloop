@@ -7,7 +7,8 @@ import SwiftData
 // 2. expired products, one row and only when there are some (like "Software Update"
 //    at the top of Settings): it's something to do, so it stays where you see it
 // 3. recipes
-// 4. the 3 most urgent products, "See all" is in the header like in the App Store
+// 4. the 4 most urgent products as round photos with their date (names were too long
+//    for a row of four), "See all" is in the header like in the App Store
 struct HomeView: View {
     @Query(sort: \FoodItem.expirationDate) private var items: [FoodItem]
     // read here so the list updates when the setting changes
@@ -23,9 +24,10 @@ struct HomeView: View {
     var onProfile: () -> Void
 
     @State private var reviewingExpired = false
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     // how many expiring products Home shows, the rest are in "See all"
-    private static let previewLimit = 3
+    private static let previewLimit = 4
 
     // expired and not answered yet
     private var pastDate: [FoodItem] { items.filter { $0.isExpired && !$0.expiryReviewed } }
@@ -68,14 +70,18 @@ struct HomeView: View {
                 // recipes
                 Section("Recipe ideas") { recipeCard }
 
-                // expiring soon, only the first 3
+                // expiring soon, only the first 4
                 Section {
                     if expiring.isEmpty {
                         allFreshRow
-                    } else {
+                    } else if typeSize.isAccessibilitySize {
+                        // with very big text four circles don't fit, and the dates
+                        // would be cut: the usual rows, the name helps there too
                         ForEach(expiring.prefix(Self.previewLimit)) { item in
                             NavigationLink(value: Route.item(item.persistentModelID)) { ItemRow(item: item, dateOnly: true) }
                         }
+                    } else {
+                        expiringCircles
                     }
                 } header: {
                     expiringHeader
@@ -130,6 +136,27 @@ struct HomeView: View {
                     .textCase(nil)
             }
         }
+    }
+
+    // one row of round photos, like the favorites in Phone or People in Photos.
+    // four fixed columns, so one or two products start on the left and don't spread out
+    private var expiringCircles: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .top), count: Self.previewLimit),
+                  spacing: 0) {
+            ForEach(expiring.prefix(Self.previewLimit)) { item in
+                // a Button and not a NavigationLink: four links in one row
+                // would make the whole row a single tap
+                Button { open(item) } label: { ExpiringCircle(item: item) }
+                    .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private func open(_ item: FoodItem) {
+        let route = Route.item(item.persistentModelID)
+        // a quick double tap would open the same product twice
+        if path.last != route { path.append(route) }
     }
 
     // when nothing is expiring, just a line of text
@@ -199,5 +226,84 @@ private struct AlignedIconLabelStyle: LabelStyle {
                 .frame(width: iconWidth)
             configuration.title
         }
+    }
+}
+
+// MARK: - Round photo for "Expiring soon"
+// the photo in a ring of the status color, and only the date under it.
+// VoiceOver still reads the name and the status, which the circle doesn't show
+private struct ExpiringCircle: View {
+    let item: FoodItem
+
+    @ScaledMetric(relativeTo: .body) private var diameter: CGFloat = 64
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var withoutColor
+    @State private var photo: UIImage?
+
+    private let ring: CGFloat = 2.5
+    private let gap: CGFloat = 3   // a thin space between ring and photo, so the ring reads as a ring
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle().strokeBorder(item.status.tint, lineWidth: ring)
+                picture
+                    .clipShape(.circle)
+                    .padding(ring + gap)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .frame(maxWidth: diameter)   // smaller if the column is narrower (small iPhones, bigger text)
+            // "Differentiate Without Color" on: the status icon too, not only the ring
+            .overlay(alignment: .bottomTrailing) {
+                if withoutColor { badge }
+            }
+
+            Text(date)
+                .font(.footnote)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(.rect)   // the space around the circle opens it too
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: "\(item.name), \(item.statusText), \(date)"))
+        .task(id: item.persistentModelID) {
+            guard let data = item.imageData, let full = UIImage(data: data) else { return }
+            photo = await full.byPreparingThumbnail(ofSize: CGSize(width: diameter * 3, height: diameter * 3))
+        }
+    }
+
+    @ViewBuilder
+    private var picture: some View {
+        if let photo {
+            Color.clear.overlay {
+                Image(uiImage: photo).resizable().scaledToFill()
+            }
+        } else {
+            // no photo (typed by hand): the first letter on gray, like Contacts
+            Circle()
+                .fill(Color(.systemGray2).gradient)
+                .overlay {
+                    if let letter = item.name.first(where: { $0.isLetter || $0.isNumber }) {
+                        Text(verbatim: String(letter).uppercased())
+                            .font(.system(size: diameter * 0.4, weight: .medium, design: .rounded))
+                            .minimumScaleFactor(0.5)
+                            .foregroundStyle(.white)
+                    } else {
+                        Image(systemName: "photo").foregroundStyle(.white)
+                    }
+                }
+        }
+    }
+
+    private var badge: some View {
+        Image(systemName: item.status.symbol)
+            .font(.subheadline)
+            .foregroundStyle(item.status.tint)
+            .padding(2)
+            .background(Color(.secondarySystemGroupedBackground), in: .circle)   // same as the row
+    }
+
+    private var date: String {
+        item.expirationDate.formatted(.dateTime.day().month(.abbreviated))
     }
 }

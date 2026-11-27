@@ -29,7 +29,7 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 - **One scan for everything.** Tap Scan a product and the camera opens. Point it at the barcode, turn the pack, and the expiry date is read in the same scan, even when it's printed right next to the barcode. Name, brand and photo come from Open Food Facts, and you can still change them before saving. No barcode? Tap Enter manually.
 - **Pantry** with everything you have, sorted by date, with search.
 - **One notification a day**, at 9:00, however many products you have. It starts 3 days before the date (you can change it) and comes every morning up to the day itself. After the date it asks every morning if you used the product, until you answer, and you can answer without opening the app. Add something that's already expired and Belloop asks first.
-- **A Home that fits on one screen**, however full your fridge is. Expired products sit in one row at the top: tap it and swipe through them, answering one at a time. Then the recipe buttons, the three products expiring soonest, and See all for the rest.
+- **A Home that fits on one screen**, however full your fridge is. Expired products sit in one row at the top: tap it and swipe through them, answering one at a time. Then the recipe buttons and the four products expiring soonest, as round photos with their date (tap one to open it), and See all for the rest.
 - **Recipes** that use the products about to expire, plus anything else you pick from your pantry. Savory or sweet, with the recipes that use exactly your product first. Anything that expired more than a day ago isn't suggested. Belloop can also read a recipe out loud while you cook.
 - **iCloud sync**: your pantry is saved in your own private iCloud and stays the same on all your devices.
 - **English and Italian**, recipes included (they're translated on the device).
@@ -46,7 +46,7 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 | Barcode and date scanning | VisionKit live scanner, date parsing in `DateParser` |
 | Product data | [Open Food Facts](https://world.openfoodfacts.org) API |
 | Recipes | [TheMealDB](https://www.themealdb.com) API |
-| Matching products to recipe ingredients | Foundation Models (on device), plus Open Food Facts categories |
+| Matching products to recipe ingredients | Foundation Models (on device), plus Open Food Facts categories. Names typed by hand are checked against TheMealDB's ingredient list, with the Translation framework as a backup |
 | Recipe translation | Translation framework (on device) |
 | Reminders | Local notifications (`UserNotifications`) |
 | Reading recipes out loud | `AVSpeechSynthesizer`, the iPhone's own voices |

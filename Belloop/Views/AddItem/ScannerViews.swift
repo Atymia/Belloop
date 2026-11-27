@@ -99,12 +99,13 @@ struct ScannerSheet: View {
                             // what's been found so far
                             progress
                             Spacer()
+                            // plain text, not bold: it explains, it isn't a button
                             Text(hintText)
-                                .font(.subheadline.bold())
+                                .font(.subheadline)
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
-                                .modifier(HintBackground())
+                                .modifier(LabelBackground())
                                 .padding(.horizontal)
                             if let onManual {
                                 Button("Enter manually", action: onManual)
@@ -137,13 +138,7 @@ struct ScannerSheet: View {
                 }
                 // flashlight for bottles and dark packages
                 if hasTorch {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        // LocalizedStringKey so the title gets translated
-                        Button(torchOn ? LocalizedStringKey("Turn Flashlight Off") : LocalizedStringKey("Turn Flashlight On"),
-                               systemImage: torchOn ? "flashlight.on.fill" : "flashlight.off.fill") {
-                            torchOn.toggle()
-                        }
-                    }
+                    ToolbarItem(placement: .topBarTrailing) { torchButton }
                 }
                 // the date isn't on the package or can't be read: keep what was found
                 ToolbarItem(placement: .confirmationAction) {
@@ -174,18 +169,54 @@ struct ScannerSheet: View {
         }
     }
 
-    // two small labels at the top: green when found, orange when the barcode
-    // was read but the product isn't in the database
+    // yellow when it's on, like the flash in Camera: before, you only noticed from the light
+    @ViewBuilder
+    private var torchButton: some View {
+        // LocalizedStringKey so the title gets translated
+        let button = Button(torchOn ? LocalizedStringKey("Turn Flashlight Off") : LocalizedStringKey("Turn Flashlight On"),
+                            systemImage: torchOn ? "flashlight.on.fill" : "flashlight.off.fill") {
+            torchOn.toggle()
+        }
+        if torchOn {
+            button
+                .buttonStyle(.glassProminent)
+                .tint(.yellow)
+                .foregroundStyle(.black)   // white on yellow is hard to read
+        } else {
+            button
+        }
+    }
+
+    // what's been found so far, in one panel at the top: green when found, orange when the
+    // barcode was read but the product isn't in the database.
+    // one panel and not two capsules, which looked like two buttons
     private var progress: some View {
-        HStack(spacing: 8) {
-            barcodeStep
-            if result.date != nil {
-                step("Expiration date", symbol: "checkmark.circle.fill", color: Color("StatusFresh"), value: Text("Found"))
-            } else {
-                step("Expiration date", symbol: "calendar", color: .primary, value: Text("Not found yet"))
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                barcodeStep
+                Divider().frame(height: 16)
+                dateStep
+            }
+            // bigger text: one under the other
+            VStack(alignment: .leading, spacing: 8) {
+                barcodeStep
+                dateStep
             }
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .modifier(LabelBackground())
+        .padding(.horizontal)
         .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private var dateStep: some View {
+        if result.date != nil {
+            step("Expiration date", symbol: "checkmark.circle.fill", color: Color("StatusFresh"), value: Text("Found"))
+        } else {
+            step("Expiration date", symbol: "calendar", color: .primary, value: Text("Not found yet"))
+        }
     }
 
     @ViewBuilder
@@ -208,12 +239,9 @@ struct ScannerSheet: View {
 
     private func step(_ title: LocalizedStringKey, symbol: String, color: Color, value: Text) -> some View {
         Label(title, systemImage: symbol)
-            .font(.footnote.weight(.semibold))
+            .font(.footnote.weight(.medium))
             .foregroundStyle(color)
             .contentTransition(.symbolEffect(.replace))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .modifier(HintBackground())
             .accessibilityValue(value)
     }
 
@@ -260,16 +288,17 @@ struct ScannerSheet: View {
     }
 }
 
-// MARK: - Hint background (solid if Reduce Transparency is on)
-private struct HintBackground: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
+// MARK: - Background of the scanner's labels
+// they only say what's going on, so no Liquid Glass and no capsule: in iOS 26 those mean
+// "you can tap this" (Apple keeps glass for controls, and "Enter manually" below is the
+// one thing to tap). a dark material in a rounded rectangle instead, readable on any package.
+// dark mode inside so the text is white and the status colors use their dark version.
+// with Reduce Transparency the material becomes solid by itself
+private struct LabelBackground: ViewModifier {
     func body(content: Content) -> some View {
-        if reduceTransparency {
-            content.background(.regularMaterial, in: .capsule)
-        } else {
-            content.glassEffect(.regular, in: .capsule)
-        }
+        content
+            .background(.regularMaterial, in: .rect(cornerRadius: 12))
+            .environment(\.colorScheme, .dark)
     }
 }
 
