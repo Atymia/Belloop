@@ -108,18 +108,7 @@ enum OpenFoodFactsService {
         ]
         guard let url = comps.url else { return [] }
 
-        let data: Data
-        do {
-            data = try await get(url)
-        } catch let error as URLError where [.timedOut, .badServerResponse, .networkConnectionLost].contains(error.code) {
-            // the search server is often slow or busy (timeout or 5xx), and the next try usually works:
-            // wait a second and try once more before telling the user
-            try await Task.sleep(for: .seconds(1))
-            try await waitForSlot()
-            data = try await get(url)
-        }
-        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let list = root["products"] as? [[String: Any]] else { return [] }
+        let list = try await productList(from: url)
 
         var seen = Set<String>()
         let matching = list
@@ -147,6 +136,28 @@ enum OpenFoodFactsService {
         let text = keys.compactMap { p[$0] as? String }.joined(separator: " ")
         let nameWords = fold(text).split(whereSeparator: { !$0.isLetter && !$0.isNumber })
         return words.allSatisfy { word in nameWords.contains { $0.hasPrefix(word) } }
+    }
+
+    // the text search is Open Food Facts' old endpoint (their docs call it legacy): when it's
+    // busy it answers 503, or an error page instead of JSON. it comes and goes, so a busy
+    // answer gets two more tries (after 1 and 2 seconds) before the user sees the note.
+    // no connection at all isn't retried
+    private static func productList(from url: URL) async throws -> [[String: Any]] {
+        let busy: Set<URLError.Code> = [.timedOut, .badServerResponse, .networkConnectionLost, .cannotParseResponse]
+        var attempt = 0
+        while true {
+            do {
+                let data = try await get(url)
+                guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    throw URLError(.cannotParseResponse)   // an error page, not JSON
+                }
+                return root["products"] as? [[String: Any]] ?? []
+            } catch let error as URLError where busy.contains(error.code) && attempt < 2 {
+                attempt += 1
+                try await Task.sleep(for: .seconds(attempt))
+                try await waitForSlot()
+            }
+        }
     }
 
     // sleeps until the guard allows one more request (throws if the search was cancelled)

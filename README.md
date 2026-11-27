@@ -46,7 +46,7 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 | Barcode and date scanning | VisionKit live scanner, date parsing in `DateParser` |
 | Product data | [Open Food Facts](https://world.openfoodfacts.org) API |
 | Recipes | [TheMealDB](https://www.themealdb.com) API |
-| Matching products to recipe ingredients | Foundation Models (on device), plus Open Food Facts categories. Names typed by hand are checked against TheMealDB's ingredient list, with the Translation framework as a backup |
+| Matching products to recipe ingredients | Foundation Models (on device), plus Open Food Facts categories. Names typed by hand are translated by Apple (Foundation Models, or the Translation framework) and checked against TheMealDB's ingredient list |
 | Recipe translation | Translation framework (on device) |
 | Reminders | Local notifications (`UserNotifications`) |
 | Reading recipes out loud | `AVSpeechSynthesizer`, the iPhone's own voices |

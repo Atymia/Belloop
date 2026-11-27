@@ -31,6 +31,10 @@ struct RecipeSheet: View {
     @State private var results: [RecipeType: TypeResult] = [:]
     @State private var loading: Set<RecipeType> = []
     @State private var translationConfig: TranslationSession.Configuration?
+    // a language Apple's translator needs for products typed by hand (Apple's own download sheet)
+    @State private var languageConfig: TranslationSession.Configuration?
+    // asked only once per language: if the person said no, we don't ask every time
+    @AppStorage("translation.askedLanguages") private var askedLanguages = ""
     @State private var isTranslating = false
     @State private var translationFailed = false
     // opens on Savory. if the products only make desserts it moves to Sweet by itself,
@@ -97,6 +101,12 @@ struct RecipeSheet: View {
                 guard results[recipeType] == nil, !loading.contains(recipeType) else { return }
                 await load(recipeType)
             }
+            // the language is downloaded (or the person said no): search again
+            .translationTask(languageConfig) { session in
+                try? await session.prepareTranslation()
+                guard results[recipeType] == nil, !loading.contains(recipeType) else { return }
+                await load(recipeType)
+            }
             .translationTask(translationConfig) { session in
                 await translate(using: session)
             }
@@ -160,6 +170,17 @@ struct RecipeSheet: View {
         let chosen = await IngredientNormalizer.resolve(items)
         let chosenIDs = Set(items.map(\.uid))
         let others = await IngredientNormalizer.resolve(pantry.filter { !chosenIDs.contains($0.uid) }, limit: 12)
+
+        // a product typed by hand is still waiting for Apple's translator, because its language
+        // isn't on the phone yet: Apple's sheet asks to download it, then the search runs again.
+        // only when it's needed (with Apple Intelligence the name is usually understood already)
+        if let language = await IngredientNormalizer.languageToDownload(for: items + pantry),
+           let code = language.languageCode?.identifier,
+           !askedLanguages.split(separator: ",").contains(Substring(code)) {
+            askedLanguages += askedLanguages.isEmpty ? code : ",\(code)"
+            languageConfig = .init(source: language, target: Locale.Language(identifier: "en"))
+            return   // the spinner stays, .translationTask above searches again
+        }
 
         var result = await MealDBService.recipes(for: chosen, pantry: others, type: type, excluding: shown)
         if result.recipes.isEmpty && !shown.isEmpty {

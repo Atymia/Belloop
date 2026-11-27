@@ -99,14 +99,15 @@ struct ScannerSheet: View {
                             // what's been found so far
                             progress
                             Spacer()
-                            // plain text, not bold: it explains, it isn't a button
+                            // just text on the camera, no panel: it explains, it isn't a button.
+                            // white with a soft shadow, and the dark fade at the bottom
+                            // keeps it readable on white packages too
                             Text(hintText)
-                                .font(.subheadline)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .modifier(LabelBackground())
-                                .padding(.horizontal)
+                                .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
+                                .padding(.horizontal, 24)
                             if let onManual {
                                 Button("Enter manually", action: onManual)
                                     .buttonStyle(.glass)
@@ -114,6 +115,7 @@ struct ScannerSheet: View {
                             }
                         }
                         .padding(.bottom, 24)
+                        .background(alignment: .bottom) { bottomFade }
                     }
                 } else {
                     ContentUnavailableView {
@@ -167,6 +169,15 @@ struct ScannerSheet: View {
                 }
             }
         }
+    }
+
+    // dark at the bottom edge, clear above: like the bottom of the Camera app, but see-through
+    private var bottomFade: some View {
+        LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .top, endPoint: .bottom)
+            .frame(height: 220)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     // yellow when it's on, like the flash in Camera: before, you only noticed from the light
@@ -288,9 +299,9 @@ struct ScannerSheet: View {
     }
 }
 
-// MARK: - Background of the scanner's labels
-// they only say what's going on, so no Liquid Glass and no capsule: in iOS 26 those mean
-// "you can tap this" (Apple keeps glass for controls, and "Enter manually" below is the
+// MARK: - Background of the status at the top
+// it only says what's going on, so no Liquid Glass and no capsule: in iOS 26 those mean
+// "you can tap this" (Apple keeps glass for controls, and "Enter manually" at the bottom is the
 // one thing to tap). a dark material in a rounded rectangle instead, readable on any package.
 // dark mode inside so the text is white and the status colors use their dark version.
 // with Reduce Transparency the material becomes solid by itself
