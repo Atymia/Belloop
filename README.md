@@ -28,7 +28,7 @@ Belloop is our answer to that. You scan what you buy, the app keeps the list for
 
 - **One scan for everything.** Tap Scan a product and the camera opens. Point it at the barcode, turn the pack, and the expiry date is read in the same scan, even when it's printed right next to the barcode. Name, brand and photo come from Open Food Facts, and you can still change them before saving. No barcode? Tap Enter manually.
 - **Pantry** with everything you have, sorted by date, with search.
-- **One notification a day**, at 9:00, however many products you have. It starts 3 days before the date (you can change it) and comes every morning up to the day itself. After the date it asks every morning if you used the product, until you answer, and you can answer without opening the app. Add something that's already expired and Belloop asks first.
+- **Reminders at 9:00**: one for what's expiring soon, every morning from 3 days before the date (you can change it) to the day itself, and one the morning after a date to ask, once, if you used the product. With one product you can answer right on the notification. Products you haven't answered for stay under Past their date on Home, with a badge on the app icon, and "Still have it" brings them back the next day. Add something that's already expired and Belloop asks first.
 - **A Home that fits on one screen**, however full your fridge is. Expired products sit in one row at the top: tap it and swipe through them, answering one at a time. Then the recipe buttons and the four products expiring soonest, as round photos with their date (tap one to open it), and See all for the rest.
 - **Recipes** that use the products about to expire, plus anything else you pick from your pantry. Savory or sweet, with the recipes that use exactly your product first. Anything that expired more than a day ago isn't suggested. Belloop can also read a recipe out loud while you cook.
 - **iCloud sync**: your pantry is saved in your own private iCloud and stays the same on all your devices.
@@ -74,7 +74,7 @@ Belloop/
 │   ├── MealDBService.swift         recipe search, ranking and sweet/savory
 │   ├── IngredientNormalizer.swift  product name -> English recipe keyword
 │   ├── RecipeTranslator.swift      on-device translation of recipes
-│   ├── NotificationManager.swift   the daily reminder and the "did you use it?" question
+│   ├── NotificationManager.swift   the 9:00 reminders, the "did you use it?" question, the badge
 │   └── DateParser.swift            turns "12/05/26", "12 MAG 2026"... into a date
 └── Resources/                      icon and colors, English and Italian texts, privacy manifest
 ```
@@ -87,7 +87,7 @@ No account, no tracking, no ads, no analytics. Your pantry lives on your iPhone 
 
 - Recipes come from TheMealDB, which is mostly English and has more international dishes than Italian ones. We translate them on the device, so some wording can sound a bit literal.
 - Product search depends on Open Food Facts. When their server is busy, the search can be slow; scanning the barcode is always the most reliable way.
-- We use TheMealDB's free test key. Before a public App Store release we'll need their supporter key.
+- TheMealDB's free test key is only for development. To build with the supporter key, add `Belloop/Resources/Secrets.plist` with a `MealDBKey` string. The file is ignored by git, so the key never ends up in this public repo; without it the app falls back to the test key.
 
 ## Credits
 

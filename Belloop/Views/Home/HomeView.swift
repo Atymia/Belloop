@@ -18,19 +18,22 @@ struct HomeView: View {
     // owned by ContentView (it closes a product's screen if the product gets deleted)
     @Binding var path: [Route]
 
+    // also owned by ContentView, so a tapped notification can open the review
+    @Binding var reviewingExpired: Bool
+    var reviewStart: UUID?
+
     var onAdd: () -> Void
     var onRecipes: ([FoodItem]) -> Void
     var onChoose: () -> Void
     var onProfile: () -> Void
 
-    @State private var reviewingExpired = false
     @Environment(\.dynamicTypeSize) private var typeSize
 
     // how many expiring products Home shows, the rest are in "See all"
     private static let previewLimit = 4
 
     // expired and not answered yet
-    private var pastDate: [FoodItem] { items.filter { $0.isExpired && !$0.expiryReviewed } }
+    private var pastDate: [FoodItem] { items.filter(\.waitsForAnswer) }
     // from today to reminderDays (already sorted by date, so the most urgent come first)
     private var expiring: [FoodItem] { items.filter { $0.expires(within: reminderDays) } }
     // expiring soon + expired since yesterday at most (rule is in Models)
@@ -93,12 +96,17 @@ struct HomeView: View {
             .toolbar {
                 // avatar button like in the App Store
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onProfile) { AvatarView(size: 40) }   // a bit bigger, still fits the bar
-                        .accessibilityLabel("Account")
+                    Button(action: onProfile) {
+                        // 40 pt to see, 44 pt to tap (Apple's minimum for anything you tap)
+                        AvatarView(size: 40)
+                            .frame(width: 44, height: 44)
+                            .contentShape(.circle)
+                    }
+                    .accessibilityLabel("Account")
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
-            .sheet(isPresented: $reviewingExpired) { ReviewExpiredSheet() }
+            .sheet(isPresented: $reviewingExpired) { ReviewExpiredSheet(startAt: reviewStart) }
         }
     }
 
@@ -131,11 +139,18 @@ struct HomeView: View {
             Text("Expiring soon")
             Spacer()
             if expiring.count > Self.previewLimit {
-                Button("See all") { path.append(.allExpiring) }
-                    .fontWeight(.regular)
-                    .textCase(nil)
+                Button { path.append(.allExpiring) } label: {
+                    // just the words were ~20 pt tall: 44 pt is Apple's minimum to tap
+                    Text("See all")
+                        .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                        .contentShape(.rect)
+                }
+                .fontWeight(.regular)
+                .textCase(nil)
             }
         }
+        // always 44 pt, so the header doesn't jump when See all appears
+        .frame(minHeight: 44)
     }
 
     // one row of round photos, like the favorites in Phone or People in Photos.

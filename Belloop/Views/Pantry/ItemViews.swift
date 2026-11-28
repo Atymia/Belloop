@@ -145,7 +145,7 @@ struct ItemDetailView: View {
         }
         // new date or name = new notification and new recipe keyword
         .onChange(of: item.expirationDate) {
-            item.expiryReviewed = false   // ask again after the new date
+            item.keptOn = nil   // a new date starts over
             NotificationManager.schedule(for: item)
         }
         .onChange(of: item.name) {

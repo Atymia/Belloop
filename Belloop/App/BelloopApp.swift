@@ -51,15 +51,61 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 
     // show the notification even if the app is open
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                            willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .sound, .list]
+                                            willPresent notification: UNNotification,
+                                            withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound, .list])
     }
 
-    // user tapped a button or the notification itself
+    // user tapped a button or the notification itself.
+    // the crash on 28 Nov (TestFlight build 9, two testers): with the `async` version of this
+    // method, Swift ran it on a background thread and then told iOS "done" from there too.
+    // iOS wants that "done" on the main thread, so it stopped the app
+    // (UIApplication _performBlockAfterCATransactionCommitSynchronizes). this version is called
+    // on the main thread, does the work on the main actor and calls completionHandler there
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                            didReceive response: UNNotificationResponse) async {
+                                            didReceive response: UNNotificationResponse,
+                                            withCompletionHandler completionHandler: @escaping () -> Void) {
+        // only plain strings cross over, not the response itself
         let action = response.actionIdentifier
-        guard let itemID = response.notification.request.content.userInfo["itemID"] as? String else { return }
-        await ExpiryReview.handle(action: action, itemID: itemID)
+        let info = response.notification.request.content.userInfo
+        let itemID = info["itemID"] as? String
+        let kind = info["kind"] as? String
+        Task { @MainActor in
+            if action == UNNotificationDefaultActionIdentifier {
+                // a tap on the notification: open what it's about (Apple's HIG: people expect
+                // to land on the related content, not just in the app)
+                NotificationRouter.shared.open(kind: kind, itemID: itemID)
+            } else if let itemID {
+                // one of the buttons: answer without opening the app, then fix the badge
+                // and the next notifications before iOS puts the app back to sleep
+                ExpiryReview.handle(action: action, itemID: itemID)
+                await NotificationManager.refreshNow()
+            }
+            completionHandler()
+        }
+    }
+}
+
+// where a tapped notification takes you. AppDelegate sets it, ContentView goes there
+// (also when the tap launched the app and ContentView shows up a moment later)
+@MainActor @Observable
+final class NotificationRouter {
+    static let shared = NotificationRouter()
+
+    enum Destination: Equatable {
+        case product(UUID)   // one product expiring soon: its page
+        case expiringList    // several expiring soon: the See all list
+        case review(UUID?)   // past their date: "Did you use these?", on that product if it's one
+    }
+
+    var destination: Destination?
+
+    func open(kind: String?, itemID: String?) {
+        let id = itemID.flatMap(UUID.init(uuidString:))
+        switch kind ?? "" {
+        case NotificationManager.Kind.soon: destination = id.map(Destination.product) ?? .expiringList
+        case NotificationManager.Kind.past: destination = .review(id)
+        default: destination = nil   // a notification from an older version: the app just opens
+        }
     }
 }

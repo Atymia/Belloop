@@ -11,3 +11,6 @@ build/
 
 # secrets
 *.env
+
+# TheMealDB supporter key (see MealDBService.swift)
+Belloop/Resources/Secrets.plist

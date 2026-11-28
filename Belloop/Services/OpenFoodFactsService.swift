@@ -27,7 +27,7 @@ enum OFFSearchError: Error {
 // Open Food Facts: free database, no API key.
 // works with barcode or text, NOT with photos.
 // limits per device: 15 barcode lookups/min and 10 searches/min.
-// they want a User-Agent like "AppName/Version (contact)".
+// they want a User-Agent like "AppName/Version (contact email)".
 // we have to credit them in the app (ODbL / CC BY-SA)
 enum OpenFoodFactsService {
     // uses the app name, so if we rename the app it updates by itself
@@ -35,7 +35,7 @@ enum OpenFoodFactsService {
         let info = Bundle.main.infoDictionary ?? [:]
         let name = (info["CFBundleDisplayName"] as? String) ?? (info["CFBundleName"] as? String) ?? "App"
         let version = (info["CFBundleShortVersionString"] as? String) ?? "1.0"
-        return "\(name)/\(version) (Apple Developer Academy project)"
+        return "\(name)/\(version) (\(AppLinks.email))"
     }()
 
     private static var language: String {
@@ -66,7 +66,9 @@ enum OpenFoodFactsService {
     // the server searches everywhere in the product, so "burro" was giving
     // chocolate (cocoa butter lol). so I filter: every word has to be
     // at the start of a word in the name or brand
-    static func search(_ query: String) async throws -> [OFFProduct] {
+    static func search(_ typed: String) async throws -> [OFFProduct] {
+        // "latte 1l" and "pasta 500g" found nothing: names in the database rarely have the size
+        let query = withoutQuantities(typed)
         let key = fold(query)
         let words = key.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
         guard !words.isEmpty else { return [] }
@@ -138,6 +140,22 @@ enum OpenFoodFactsService {
         return words.allSatisfy { word in nameWords.contains { $0.hasPrefix(word) } }
     }
 
+    // how long the next search would wait for a free slot (0 = it goes now, or it's cached).
+    // only to tell the user, it doesn't count as a search
+    static func searchDelay(for typed: String) async -> TimeInterval {
+        let key = fold(withoutQuantities(typed))
+        if await searchGuard.cached(key) != nil { return 0 }
+        return await searchGuard.delay()
+    }
+
+    // drops sizes like "1l", "500 g", "0,5 L", "x6" (only if a real word is left)
+    private static func withoutQuantities(_ text: String) -> String {
+        let pattern = #"(?i)(?<![\p{L}\p{N}])(\d+([.,]\d+)?\s?(kg|g|gr|mg|l|lt|ml|cl|dl|oz|lb|pz|%)?|x\s?\d+|\d+\s?x)(?![\p{L}\p{N}])"#
+        let cleaned = text.replacingOccurrences(of: pattern, with: " ", options: .regularExpression)
+            .split(separator: " ").joined(separator: " ")
+        return cleaned.contains(where: \.isLetter) ? cleaned : text
+    }
+
     // the text search is Open Food Facts' old endpoint (their docs call it legacy): when it's
     // busy it answers 503, or an error page instead of JSON. it comes and goes, so a busy
     // answer gets two more tries (after 1 and 2 seconds) before the user sees the note.
@@ -183,6 +201,14 @@ enum OpenFoodFactsService {
         private var requests: [Date] = []
 
         func cached(_ key: String) -> [OFFProduct]? { cache[key] }
+
+        // like reserve(), without counting a search
+        func delay() -> TimeInterval {
+            let now = Date()
+            let recent = requests.filter { now.timeIntervalSince($0) < 60 }
+            guard recent.count >= 8, let oldest = recent.first else { return 0 }
+            return 60 - now.timeIntervalSince(oldest) + 0.2
+        }
         func store(_ value: [OFFProduct], for key: String) { cache[key] = value }
 
         // max ~10 searches/min, I keep it a bit lower.
