@@ -140,17 +140,20 @@ struct HomeView: View {
             Spacer()
             if expiring.count > Self.previewLimit {
                 Button { path.append(.allExpiring) } label: {
-                    // just the words were ~20 pt tall: 44 pt is Apple's minimum to tap
+                    // the words alone are ~25 pt tall, Apple's minimum to tap is 44.
+                    // the tap area grows by 10 pt above and below (padding, then the shape,
+                    // then the same padding taken back), so the header keeps its height:
+                    // a 44 pt header pushed the photos under the tab bar
                     Text("See all")
-                        .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                        .padding(.vertical, 10)
+                        .padding(.leading, 12)
                         .contentShape(.rect)
+                        .padding(.vertical, -10)
                 }
                 .fontWeight(.regular)
                 .textCase(nil)
             }
         }
-        // always 44 pt, so the header doesn't jump when See all appears
-        .frame(minHeight: 44)
     }
 
     // one row of round photos, like the favorites in Phone or People in Photos.
