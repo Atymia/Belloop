@@ -67,6 +67,16 @@
         }
       }
     },
+    "%lld of %lld" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld di %lld"
+          }
+        }
+      }
+    },
     "1 day before" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -188,17 +198,6 @@
         }
       }
     },
-    "Add Anyway" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi lo stesso"
-          }
-        }
-      }
-    },
     "Add a few products to get recipe ideas." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -217,6 +216,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiungine un altro"
+          }
+        }
+      }
+    },
+    "Add Anyway" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi lo stesso"
           }
         }
       }
@@ -320,6 +330,27 @@
         }
       }
     },
+    "At 9:00 Belloop reminds you about what's expiring soon. The morning after a date it asks once what happened. Products you haven't answered for stay under Past their date, and the app icon shows how many." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle 9:00 Belloop ti ricorda cosa sta per scadere. La mattina dopo la scadenza ti chiede una volta com'è andata. I prodotti a cui non hai risposto restano in Scaduti, e l'icona dell'app mostra quanti sono."
+          }
+        }
+      }
+    },
+    "At 9:00, from a few days before the date (you choose how many in Settings, from 1 to 7) to the day itself. The morning after the date, Belloop asks once if you used the product, and with one product you can answer right on the notification. Products you haven't answered for stay under Past their date on Home, and the app icon shows how many. If you still have one, it comes back there the next day." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle 9:00, da qualche giorno prima della scadenza (quanti lo scegli tu nelle Impostazioni, da 1 a 7) fino al giorno stesso. La mattina dopo la scadenza Belloop ti chiede una volta se hai usato il prodotto, e con un solo prodotto puoi rispondere direttamente dalla notifica. I prodotti a cui non hai risposto restano in Scaduti nella Home, e l'icona dell'app mostra quanti sono. Se ce l'hai ancora, il giorno dopo torna lì."
+          }
+        }
+      }
+    },
     "At least 8 characters" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -364,13 +395,12 @@
         }
       }
     },
-    "Every morning before the date you get a reminder, and the product shows up on Home under Expiring soon. Once it's past its date, Belloop asks if you used it until you answer." : {
-      "extractionState" : "manual",
+    "Belloop feedback" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ogni mattina prima della scadenza ricevi un promemoria e il prodotto compare in Home sotto In scadenza. Quando è scaduto, Belloop ti chiede se l'hai usato finché non rispondi."
+            "value" : "Feedback su Belloop"
           }
         }
       }
@@ -382,6 +412,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continuando accetti i Termini di servizio e l'Informativa sulla privacy."
+          }
+        }
+      }
+    },
+    "Camera access is off" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accesso alla fotocamera è disattivato"
           }
         }
       }
@@ -426,6 +466,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Controlla la connessione e riprova."
+          }
+        }
+      }
+    },
+    "Checking the database" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo nel database"
           }
         }
       }
@@ -535,6 +586,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cucina qualcosa con quello che sta per scadere."
+          }
+        }
+      }
+    },
+    "Couldn't check the product" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo non riuscito"
           }
         }
       }
@@ -682,6 +744,16 @@
         }
       }
     },
+    "Does Belloop work without internet?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belloop funziona senza internet?"
+          }
+        }
+      }
+    },
     "Don't Add" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -722,6 +794,27 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Email"
+          }
+        }
+      }
+    },
+    "Enter manually" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci a mano"
+          }
+        }
+      }
+    },
+    "Every morning before the date you get a reminder, and the product shows up on Home under Expiring soon. The morning after the date, Belloop asks once if you used it, and it stays under Past their date until you answer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni mattina prima della scadenza ricevi un promemoria e il prodotto compare in Home sotto In scadenza. La mattina dopo la scadenza Belloop ti chiede una volta se l'hai usato, e resta in Scaduti finché non rispondi."
           }
         }
       }
@@ -891,6 +984,37 @@
         }
       }
     },
+    "Found" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trovato"
+          }
+        }
+      }
+    },
+    "Got the barcode. Now the expiration date, it's often on the top or on the back." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice a barre preso. Ora la data di scadenza: di solito è sopra o sul retro."
+          }
+        }
+      }
+    },
+    "Got the date. Now the barcode." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data presa. Ora il codice a barre."
+          }
+        }
+      }
+    },
     "Have a look before they go to waste." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -924,6 +1048,16 @@
         }
       }
     },
+    "Hold the phone still, with good light. If it can't focus, move a little farther away. You can turn on the flashlight in the scanner, and if the pack has more than one date, tap the right one. You can always type the date yourself." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni il telefono fermo, con una buona luce. Se non mette a fuoco, allontanati un po'. Nello scanner puoi accendere la torcia e, se sulla confezione ci sono più date, toccare quella giusta. Puoi sempre scrivere la data a mano."
+          }
+        }
+      }
+    },
     "Home" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -931,6 +1065,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Home"
+          }
+        }
+      }
+    },
+    "How do I remove a product?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Come elimino un prodotto?"
           }
         }
       }
@@ -946,6 +1090,16 @@
         }
       }
     },
+    "I can't find a product when I type its name" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non trovo un prodotto scrivendo il nome"
+          }
+        }
+      }
+    },
     "I still have it" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -957,13 +1111,25 @@
         }
       }
     },
-    "iCloud" : {},
+    "iCloud" : {
+
+    },
     "iCloud isn't available right now. Your pantry stays on this iPhone and syncs when iCloud is back." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "iCloud non è disponibile al momento. La dispensa resta su questo iPhone e si sincronizza quando iCloud torna disponibile."
+          }
+        }
+      }
+    },
+    "In Pantry, swipe left on it and tap Delete. If you finished it, you can also answer the question you get the day after its date." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nella Dispensa, scorri verso sinistra sul prodotto e tocca Elimina. Se l'hai finito, puoi anche rispondere alla domanda che ti arriva il giorno dopo la scadenza."
           }
         }
       }
@@ -990,6 +1156,48 @@
         }
       }
     },
+    "It's a shop label, so it's not in any database. Type its name." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È un'etichetta del negozio, quindi non è in nessun database. Scrivi tu il nome."
+          }
+        }
+      }
+    },
+    "Its date was %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La data di scadenza era il %@."
+          }
+        }
+      }
+    },
+    "Keep the camera on and turn the package: the date is read in the same scan. Check it and correct it if needed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni la fotocamera accesa e gira la confezione: la data viene letta nella stessa scansione. Controllala e correggila se serve."
+          }
+        }
+      }
+    },
+    "Looking it up…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerco il prodotto…"
+          }
+        }
+      }
+    },
     "Looking up the product…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -997,6 +1205,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cerco il prodotto…"
+          }
+        }
+      }
+    },
+    "Made by High Five" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fatto da High Five"
           }
         }
       }
@@ -1100,6 +1318,27 @@
         }
       }
     },
+    "No connection" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna connessione"
+          }
+        }
+      }
+    },
+    "No connection, so we couldn't check the product. You'll type its name after the scan. Now the expiration date." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente connessione, quindi non abbiamo potuto controllare il prodotto. Scriverai il nome dopo la scansione. Ora la data di scadenza."
+          }
+        }
+      }
+    },
     "No photo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1198,6 +1437,28 @@
         }
       }
     },
+    "Not found yet" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ancora trovato"
+          }
+        }
+      }
+    },
+    "Not in the database" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è nel database"
+          }
+        }
+      }
+    },
     "Nothing expires in the next %lld days." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1273,6 +1534,16 @@
         }
       }
     },
+    "On your iPhone and, if you're signed in to iCloud, in your own iCloud, so they're the same on all your devices. Only you can see them, we can't." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sul tuo iPhone e, se hai fatto l'accesso a iCloud, nel tuo iCloud, così sono uguali su tutti i tuoi dispositivi. Puoi vederli solo tu, noi no."
+          }
+        }
+      }
+    },
     "Open original source" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1284,7 +1555,19 @@
         }
       }
     },
-    "openfoodfacts.org" : {},
+    "Open Settings" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Impostazioni"
+          }
+        }
+      }
+    },
+    "openfoodfacts.org" : {
+
+    },
     "Pantry" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1314,6 +1597,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Password"
+          }
+        }
+      }
+    },
+    "Past their date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scaduti"
           }
         }
       }
@@ -1358,6 +1651,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inquadra il codice a barre"
+          }
+        }
+      }
+    },
+    "Point the camera at the barcode and the expiration date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inquadra il codice a barre e la data di scadenza"
           }
         }
       }
@@ -1417,6 +1720,16 @@
         }
       }
     },
+    "Product removed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prodotto rimosso"
+          }
+        }
+      }
+    },
     "Product search isn't responding. You can still save the name as typed." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1468,6 +1781,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Leggi ad alta voce"
+          }
+        }
+      }
+    },
+    "Read from the package" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letta dalla confezione"
           }
         }
       }
@@ -1648,6 +1971,26 @@
         }
       }
     },
+    "Scan barcode and date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scansiona codice a barre e data"
+          }
+        }
+      }
+    },
+    "Scan product" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scansiona prodotto"
+          }
+        }
+      }
+    },
     "Scan the barcode and the expiration date" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1692,6 +2035,26 @@
         }
       }
     },
+    "Search products" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca prodotti"
+          }
+        }
+      }
+    },
+    "Search uses Open Food Facts, a free database filled in by volunteers, so not every product is there yet and sometimes their server is slow. Scanning the barcode works best. If nothing comes up, just save the name as you typed it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ricerca usa Open Food Facts, un database gratuito compilato da volontari: non tutti i prodotti ci sono ancora e a volte il loro server è lento. Scansionare il codice a barre funziona meglio. Se non esce niente, salva il nome così come l'hai scritto."
+          }
+        }
+      }
+    },
     "Searching products…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1699,6 +2062,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cerco i prodotti…"
+          }
+        }
+      }
+    },
+    "See all" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi tutti"
           }
         }
       }
@@ -1743,6 +2116,27 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Condivisione"
+          }
+        }
+      }
+    },
+    "Shop label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etichetta del negozio"
+          }
+        }
+      }
+    },
+    "Shop label: you'll add the name later. Now the date." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etichetta del negozio: il nome lo scrivi dopo. Ora la data."
           }
         }
       }
@@ -1944,6 +2338,16 @@
         }
       }
     },
+    "Still stuck? Write to us from Settings, under Contact Us." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora dubbi? Scrivici dalle Impostazioni, alla voce Contattaci."
+          }
+        }
+      }
+    },
     "Stop Reading" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1955,6 +2359,16 @@
         }
       }
     },
+    "Students at the Apple Developer Academy." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Studenti dell'Apple Developer Academy."
+          }
+        }
+      }
+    },
     "Sweet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1962,6 +2376,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dolci"
+          }
+        }
+      }
+    },
+    "Swipe left or right to see the other products" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scorri a destra o a sinistra per vedere gli altri prodotti"
           }
         }
       }
@@ -1999,6 +2423,16 @@
         }
       }
     },
+    "Tell us what happened, or what you'd change:" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccontaci cosa è successo, o cosa cambieresti:"
+          }
+        }
+      }
+    },
     "Terms of Service" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2006,6 +2440,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termini di servizio"
+          }
+        }
+      }
+    },
+    "Terms of Use" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condizioni d'uso"
           }
         }
       }
@@ -2021,7 +2465,29 @@
         }
       }
     },
-    "themealdb.com" : {},
+    "The recipes come from TheMealDB in English and are translated on your iPhone. Most of the time it's fine, but now and then a word comes out a bit literal." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le ricette arrivano da TheMealDB in inglese e vengono tradotte sul tuo iPhone. Quasi sempre va bene, ma ogni tanto qualche parola esce un po' letterale."
+          }
+        }
+      }
+    },
+    "The scanner can't read the date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo scanner non legge la data"
+          }
+        }
+      }
+    },
+    "themealdb.com" : {
+
+    },
     "There's still time to cook something with it." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2062,6 +2528,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questa azione non si può annullare."
+          }
+        }
+      }
+    },
+    "This product isn't in the database yet. Type its name." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo prodotto non è ancora nel database. Scrivi tu il nome."
           }
         }
       }
@@ -2165,6 +2641,27 @@
         }
       }
     },
+    "Turn it on in Settings to scan barcodes and expiration dates, or enter the details by hand." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attivalo in Impostazioni per scansionare codici a barre e date di scadenza, oppure inserisci i dati a mano."
+          }
+        }
+      }
+    },
+    "Unknown product" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prodotto sconosciuto"
+          }
+        }
+      }
+    },
     "Used" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2209,6 +2706,46 @@
         }
       }
     },
+    "Version %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione %@"
+          }
+        }
+      }
+    },
+    "We don't know this product yet, you'll type its name after the scan. Now the expiration date." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo prodotto non lo conosciamo ancora: scriverai il nome dopo la scansione. Ora la data di scadenza."
+          }
+        }
+      }
+    },
+    "We made Belloop because we kept finding things at the back of the cupboard a day too late. Scan what you buy, and the app reminds you before it expires and helps you cook it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbiamo creato Belloop perché continuavamo a trovare cose in fondo alla dispensa con un giorno di ritardo. Scansiona quello che compri: l'app ti avvisa prima che scada e ti aiuta a cucinarlo."
+          }
+        }
+      }
+    },
+    "We read every message: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leggiamo ogni messaggio: %@"
+          }
+        }
+      }
+    },
     "We've picked what's about to expire. Tap to add or remove anything." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2227,6 +2764,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Benvenuto in %@"
+          }
+        }
+      }
+    },
+    "When do the reminders arrive?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando arrivano i promemoria?"
+          }
+        }
+      }
+    },
+    "Where are my products saved?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dove vengono salvati i miei prodotti?"
+          }
+        }
+      }
+    },
+    "Why do some recipes sound a bit odd?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perché alcune ricette suonano un po' strane?"
           }
         }
       }
@@ -2253,13 +2820,12 @@
         }
       }
     },
-    "Every morning at 9:00 you get one notification, even with many products: in the days before a date, and after it until you tell Belloop what happened." : {
-      "extractionState" : "manual",
+    "You've searched a lot in a short time. Suggestions will be back in a few seconds." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ogni mattina alle 9:00 ricevi una sola notifica, anche con tanti prodotti: nei giorni prima della scadenza e, dopo, finché non dici a Belloop com'è andata."
+            "value" : "Hai fatto molte ricerche in poco tempo. I suggerimenti tornano tra qualche secondo."
           }
         }
       }
@@ -2308,6 +2874,16 @@
         }
       }
     },
+    "Your pantry and the reminders do. Searching for products and finding recipes need a connection." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La dispensa e i promemoria sì. Per cercare prodotti e trovare ricette serve la connessione."
+          }
+        }
+      }
+    },
     "Your pantry is saved in your iCloud and stays the same on all your devices. Only you can see it." : {
       "localizations" : {
         "it" : {
@@ -2336,527 +2912,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "I prodotti restano su questo iPhone."
-          }
-        }
-      }
-    },
-    "Terms of Use" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Condizioni d'uso"
-          }
-        }
-      }
-    },
-    "We read every message: %@" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leggiamo ogni messaggio: %@"
-          }
-        }
-      }
-    },
-    "Tell us what happened, or what you'd change:" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Raccontaci cosa è successo, o cosa cambieresti:"
-          }
-        }
-      }
-    },
-    "Belloop feedback" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Feedback su Belloop"
-          }
-        }
-      }
-    },
-    "The scanner can't read the date" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lo scanner non legge la data"
-          }
-        }
-      }
-    },
-    "Hold the phone still, with good light. If it can't focus, move a little farther away. You can turn on the flashlight in the scanner, and if the pack has more than one date, tap the right one. You can always type the date yourself." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tieni il telefono fermo, con una buona luce. Se non mette a fuoco, allontanati un po'. Nello scanner puoi accendere la torcia e, se sulla confezione ci sono più date, toccare quella giusta. Puoi sempre scrivere la data a mano."
-          }
-        }
-      }
-    },
-    "I can't find a product when I type its name" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non trovo un prodotto scrivendo il nome"
-          }
-        }
-      }
-    },
-    "Search uses Open Food Facts, a free database filled in by volunteers, so not every product is there yet and sometimes their server is slow. Scanning the barcode works best. If nothing comes up, just save the name as you typed it." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La ricerca usa Open Food Facts, un database gratuito compilato da volontari: non tutti i prodotti ci sono ancora e a volte il loro server è lento. Scansionare il codice a barre funziona meglio. Se non esce niente, salva il nome così come l'hai scritto."
-          }
-        }
-      }
-    },
-    "When do the reminders arrive?" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quando arrivano i promemoria?"
-          }
-        }
-      }
-    },
-    "Every morning at 9:00, from a few days before the date (you choose how many in Settings, from 1 to 7) to the day itself. After that, Belloop asks every morning if you used the product, until you answer. However many products you have, it's one notification a day." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ogni mattina alle 9:00, da qualche giorno prima della scadenza (quanti lo scegli tu nelle Impostazioni, da 1 a 7) fino al giorno stesso. Dopo, Belloop ti chiede ogni mattina se hai usato il prodotto, finché non rispondi. Anche con tanti prodotti, è sempre una sola notifica al giorno."
-          }
-        }
-      }
-    },
-    "Where are my products saved?" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dove vengono salvati i miei prodotti?"
-          }
-        }
-      }
-    },
-    "On your iPhone and, if you're signed in to iCloud, in your own iCloud, so they're the same on all your devices. Only you can see them, we can't." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sul tuo iPhone e, se hai fatto l'accesso a iCloud, nel tuo iCloud, così sono uguali su tutti i tuoi dispositivi. Puoi vederli solo tu, noi no."
-          }
-        }
-      }
-    },
-    "Does Belloop work without internet?" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Belloop funziona senza internet?"
-          }
-        }
-      }
-    },
-    "Your pantry and the reminders do. Searching for products and finding recipes need a connection." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La dispensa e i promemoria sì. Per cercare prodotti e trovare ricette serve la connessione."
-          }
-        }
-      }
-    },
-    "Why do some recipes sound a bit odd?" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Perché alcune ricette suonano un po' strane?"
-          }
-        }
-      }
-    },
-    "The recipes come from TheMealDB in English and are translated on your iPhone. Most of the time it's fine, but now and then a word comes out a bit literal." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le ricette arrivano da TheMealDB in inglese e vengono tradotte sul tuo iPhone. Quasi sempre va bene, ma ogni tanto qualche parola esce un po' letterale."
-          }
-        }
-      }
-    },
-    "How do I remove a product?" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Come elimino un prodotto?"
-          }
-        }
-      }
-    },
-    "In Pantry, swipe left on it and tap Delete. If you finished it, you can also answer the question you get the day after its date." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nella Dispensa, scorri verso sinistra sul prodotto e tocca Elimina. Se l'hai finito, puoi anche rispondere alla domanda che ti arriva il giorno dopo la scadenza."
-          }
-        }
-      }
-    },
-    "Still stuck? Write to us from Settings, under Contact Us." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ancora dubbi? Scrivici dalle Impostazioni, alla voce Contattaci."
-          }
-        }
-      }
-    },
-    "Version %@" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versione %@"
-          }
-        }
-      }
-    },
-    "We made Belloop because we kept finding things at the back of the cupboard a day too late. Scan what you buy, and the app reminds you before it expires and helps you cook it." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abbiamo creato Belloop perché continuavamo a trovare cose in fondo alla dispensa con un giorno di ritardo. Scansiona quello che compri: l'app ti avvisa prima che scada e ti aiuta a cucinarlo."
-          }
-        }
-      }
-    },
-    "Made by High Five" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fatto da High Five"
-          }
-        }
-      }
-    },
-    "Students at the Apple Developer Academy." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Studenti dell'Apple Developer Academy."
-          }
-        }
-      }
-    },
-    "See all" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vedi tutti"
-          }
-        }
-      }
-    },
-    "Past their date" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scaduti"
-          }
-        }
-      }
-    },
-    "%lld of %lld" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld di %lld"
-          }
-        }
-      }
-    },
-    "Scan product" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scansiona prodotto"
-          }
-        }
-      }
-    },
-    "Scan barcode and date" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scansiona codice a barre e data"
-          }
-        }
-      }
-    },
-    "Point the camera at the barcode and the expiration date" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inquadra il codice a barre e la data di scadenza"
-          }
-        }
-      }
-    },
-    "Got the barcode. Now the expiration date, it's often on the top or on the back." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codice a barre preso. Ora la data di scadenza: di solito è sopra o sul retro."
-          }
-        }
-      }
-    },
-    "Got the date. Now the barcode." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Data presa. Ora il codice a barre."
-          }
-        }
-      }
-    },
-    "Found" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trovato"
-          }
-        }
-      }
-    },
-    "Not found yet" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non ancora trovato"
-          }
-        }
-      }
-    },
-    "Read from the package" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Letta dalla confezione"
-          }
-        }
-      }
-    },
-    "Product removed" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prodotto rimosso"
-          }
-        }
-      }
-    },
-    "Swipe left or right to see the other products" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scorri a destra o a sinistra per vedere gli altri prodotti"
-          }
-        }
-      }
-    },
-    "Search products" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cerca prodotti"
-          }
-        }
-      }
-    },
-    "Its date was %@." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La data di scadenza era il %@."
-          }
-        }
-      }
-    },
-    "Keep the camera on and turn the package: the date is read in the same scan. Check it and correct it if needed." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tieni la fotocamera accesa e gira la confezione: la data viene letta nella stessa scansione. Controllala e correggila se serve."
-          }
-        }
-      }
-    },
-    "Enter manually" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci a mano"
-          }
-        }
-      }
-    },
-    "We don't know this product yet, you'll type its name after the scan. Now the expiration date." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questo prodotto non lo conosciamo ancora: scriverai il nome dopo la scansione. Ora la data di scadenza."
-          }
-        }
-      }
-    },
-    "No connection, so we couldn't check the product. You'll type its name after the scan. Now the expiration date." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Niente connessione, quindi non abbiamo potuto controllare il prodotto. Scriverai il nome dopo la scansione. Ora la data di scadenza."
-          }
-        }
-      }
-    },
-    "Looking it up…" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cerco il prodotto…"
-          }
-        }
-      }
-    },
-    "Checking the database" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controllo nel database"
-          }
-        }
-      }
-    },
-    "Unknown product" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prodotto sconosciuto"
-          }
-        }
-      }
-    },
-    "No connection" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessuna connessione"
-          }
-        }
-      }
-    },
-    "Not in the database" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non è nel database"
-          }
-        }
-      }
-    },
-    "Couldn't check the product" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controllo non riuscito"
-          }
-        }
-      }
-    },
-    "This product isn't in the database yet. Type its name." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questo prodotto non è ancora nel database. Scrivi tu il nome."
-          }
-        }
-      }
-    },
-    "Shop label: you'll add the name later. Now the date." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Etichetta del negozio: il nome lo scrivi dopo. Ora la data."
-          }
-        }
-      }
-    },
-    "Shop label" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Etichetta del negozio"
-          }
-        }
-      }
-    },
-    "It's a shop label, so it's not in any database. Type its name." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "È un'etichetta del negozio, quindi non è in nessun database. Scrivi tu il nome."
           }
         }
       }

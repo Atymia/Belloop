@@ -249,13 +249,21 @@ struct AddItemView: View {
         }
 
         suggestionTask = Task {
-            // OFF matches whole words so give the user time to finish the word
-            try? await Task.sleep(for: .milliseconds(700))
+            // OFF matches whole words so give the user time to finish the word.
+            // 1 second and not less: Open Food Facts allows ~10 searches a minute, and in a test
+            // typing 8 products by hand, 0.7 s spent them so fast that some searches waited 30 s
+            try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             isSearching = true
 
             // only real products from Open Food Facts, min 3 letters
             guard query.count >= 3 else { isSearching = false; return }
+            // too many searches this minute: the search waits for its turn, so say why
+            // instead of a spinner that doesn't move
+            if await OpenFoodFactsService.searchDelay(for: query) > 2 {
+                guard !Task.isCancelled else { return }
+                searchNote = String(localized: "You've searched a lot in a short time. Suggestions will be back in a few seconds.")
+            }
             do {
                 let result = try await OpenFoodFactsService.search(query)
                 guard !Task.isCancelled else { return }

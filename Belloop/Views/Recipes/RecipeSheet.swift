@@ -374,7 +374,13 @@ private struct RecipeDetailView: View {
                 }
 
                 if let source = recipe.sourceURL {
-                    Link("Open original source", destination: source).padding(.top, 8)
+                    Link(destination: source) {
+                        // the words alone were too small to tap: 44 pt like any button
+                        Text("Open original source")
+                            .frame(minHeight: 44)
+                            .contentShape(.rect)
+                    }
+                    .padding(.top, 4)
                 }
             }
             .padding()

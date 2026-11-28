@@ -31,13 +31,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "FoodSaver uses the camera to scan barcodes and expiration dates and to photograph products."
+            "value" : "Belloop uses the camera to scan barcodes and expiration dates, and to take photos of your products."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "FoodSaver usa la fotocamera per scansionare codici a barre e date di scadenza e per fotografare i prodotti."
+            "value" : "Belloop usa la fotocamera per scansionare codici a barre e date di scadenza e per fotografare i tuoi prodotti."
           }
         }
       }

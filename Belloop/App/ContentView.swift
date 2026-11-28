@@ -32,6 +32,10 @@ struct ContentView: View {
     // them where you left them (that's how tab bars work on iOS)
     @State private var homePath: [Route] = []
     @State private var pantryPath: [Route] = []
+    // Home's "Did you use these?" sheet, here so a tapped notification can open it
+    @State private var reviewingExpired = false
+    @State private var reviewStart: UUID?
+    private let router = NotificationRouter.shared
 
     // only to notice when a product is deleted (Pantry, iCloud, the review sheet)
     @Query private var items: [FoodItem]
@@ -49,6 +53,8 @@ struct ContentView: View {
             Tab("Home", systemImage: "house", value: AppTab.home) {
                 HomeView(
                     path: $homePath,
+                    reviewingExpired: $reviewingExpired,
+                    reviewStart: reviewStart,
                     onAdd: { activeSheet = .add(scanning: true) },
                     onRecipes: { activeSheet = .recipes($0) },
                     onChoose: { activeSheet = .picker },
@@ -83,6 +89,12 @@ struct ContentView: View {
             homePath.removeAll { !$0.isAlive(in: alive) }
             pantryPath.removeAll { !$0.isAlive(in: alive) }
         }
+        // a notification was tapped: go to what it's about
+        .onChange(of: router.destination, initial: true) { _, destination in
+            guard let destination else { return }
+            router.destination = nil
+            open(destination)
+        }
         // every time the app is opened, rebuild the notifications from what's in the pantry
         .onChange(of: scenePhase, initial: true) {
             if scenePhase == .active { NotificationManager.refresh() }
@@ -91,6 +103,31 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
                     .receive(on: DispatchQueue.main)) { _ in
             NotificationManager.refresh()
+        }
+    }
+
+    private func open(_ destination: NotificationRouter.Destination) {
+        selectedTab = .home
+        let sheetWasOpen = activeSheet != nil || reviewingExpired
+        activeSheet = nil
+        switch destination {
+        case .product(let uid):
+            if let item = items.first(where: { $0.uid == uid }) {
+                homePath = [.item(item.persistentModelID)]
+            } else {
+                homePath = []   // already removed: Home is the closest thing
+            }
+        case .expiringList:
+            homePath = [.allExpiring]
+        case .review(let uid):
+            homePath = []
+            reviewStart = uid
+            reviewingExpired = false
+            Task {
+                // a sheet that was open has to finish closing before a new one can open
+                if sheetWasOpen { try? await Task.sleep(for: .milliseconds(500)) }
+                reviewingExpired = true
+            }
         }
     }
 

@@ -41,7 +41,7 @@ struct SettingsView: View {
             } header: {
                 Text("Notifications")
             } footer: {
-                Text("Every morning at 9:00 you get one notification, even with many products: in the days before a date, and after it until you tell Belloop what happened.")
+                Text("At 9:00 Belloop reminds you about what's expiring soon. The morning after a date it asks once what happened. Products you haven't answered for stay under Past their date, and the app icon shows how many.")
             }
 
             Section{
@@ -187,7 +187,7 @@ struct HowToUseView: View {
         Step(id: 3, symbol: "refrigerator", title: "3. Save it",
              text: "The product goes into your Pantry, sorted by expiration date."),
         Step(id: 4, symbol: "bell.badge", title: "4. Get reminded",
-             text: "Every morning before the date you get a reminder, and the product shows up on Home under Expiring soon. Once it's past its date, Belloop asks if you used it until you answer."),
+             text: "Every morning before the date you get a reminder, and the product shows up on Home under Expiring soon. The morning after the date, Belloop asks once if you used it, and it stays under Past their date until you answer."),
         Step(id: 5, symbol: "fork.knife", title: "5. Cook it",
              text: "Recipe ideas finds real recipes that use what's about to expire. Pull the list down for new ones, or pick products from your Pantry."),
     ]
@@ -233,7 +233,7 @@ struct HelpFAQView: View {
         Question(id: 2, question: "I can't find a product when I type its name",
                  answer: "Search uses Open Food Facts, a free database filled in by volunteers, so not every product is there yet and sometimes their server is slow. Scanning the barcode works best. If nothing comes up, just save the name as you typed it."),
         Question(id: 3, question: "When do the reminders arrive?",
-                 answer: "Every morning at 9:00, from a few days before the date (you choose how many in Settings, from 1 to 7) to the day itself. After that, Belloop asks every morning if you used the product, until you answer. However many products you have, it's one notification a day."),
+                 answer: "At 9:00, from a few days before the date (you choose how many in Settings, from 1 to 7) to the day itself. The morning after the date, Belloop asks once if you used the product, and with one product you can answer right on the notification. Products you haven't answered for stay under Past their date on Home, and the app icon shows how many. If you still have one, it comes back there the next day."),
         Question(id: 4, question: "Where are my products saved?",
                  answer: "On your iPhone and, if you're signed in to iCloud, in your own iCloud, so they're the same on all your devices. Only you can see them, we can't."),
         Question(id: 5, question: "Does Belloop work without internet?",

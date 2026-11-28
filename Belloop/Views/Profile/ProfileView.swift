@@ -32,6 +32,11 @@ struct AvatarView: View {
         ZStack {
             if let photo {
                 Image(uiImage: photo).resizable().scaledToFill()
+            } else if let choice = AvatarIcon.option(for: icon) {
+                // an emoji on a soft circle of its own color, like the emoji avatars in Contacts
+                AvatarIcon.Background(color: choice.color)
+                Text(verbatim: choice.emoji)
+                    .font(.system(size: size * 0.55))
             } else {
                 // same gradient as the app icon, white on top: visible in light and dark mode
                 // (the pale circle from before almost disappeared on a dark background)
@@ -269,32 +274,70 @@ struct EditProfileView: View {
     }
 }
 
-// temporary icons, we'll choose the real ones later
+// MARK: - Avatar icons
+// Apple's own emoji, so they have exactly the colors people know from Messages and Contacts
+// (the SF Symbols we had were all one color, and only a few food symbols have a multicolor
+// version). each one sits on a soft circle of its own color, like the emoji avatars in Contacts.
+// VoiceOver reads each emoji's name by itself, in the phone's language
+enum AvatarIcon {
+    struct Option: Identifiable {
+        let emoji: String
+        let color: Color
+        var id: String { emoji }
+    }
+
+    static let options: [Option] = [
+        Option(emoji: "🥕", color: .orange), Option(emoji: "🍎", color: .red),
+        Option(emoji: "🥑", color: .green), Option(emoji: "🍋", color: .yellow),
+        Option(emoji: "🍓", color: .pink), Option(emoji: "🥦", color: .mint),
+        Option(emoji: "🧀", color: .yellow), Option(emoji: "🥐", color: .orange),
+        Option(emoji: "🍝", color: .red), Option(emoji: "🍣", color: .cyan),
+        Option(emoji: "☕️", color: .brown), Option(emoji: "🍰", color: .pink),
+    ]
+
+    // nil for icons saved before (SF Symbol names like "carrot.fill"): those still show as before
+    static func option(for stored: String) -> Option? {
+        options.first { $0.emoji == stored }
+    }
+
+    // solid, so it looks the same on a list, on the toolbar glass, in light and dark mode
+    struct Background: View {
+        let color: Color
+        var body: some View {
+            ZStack {
+                Circle().fill(Color(.secondarySystemBackground))
+                Circle().fill(color.opacity(0.3))
+            }
+        }
+    }
+}
+
 private struct IconPickerSheet: View {
     @Binding var icon: String
     @Environment(\.dismiss) private var dismiss
-
-    static let icons = [
-        "person.fill", "leaf.fill", "carrot.fill", "fork.knife",
-        "cup.and.saucer.fill", "birthday.cake.fill", "fish.fill", "takeoutbag.and.cup.and.straw.fill",
-    ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 16)], spacing: 16) {
-                    ForEach(Self.icons, id: \.self) { symbol in
+                    ForEach(AvatarIcon.options) { option in
                         Button {
-                            icon = symbol
+                            icon = option.emoji
                             AvatarStore.remove()   // icon wins over photo
                             dismiss()
                         } label: {
-                            Image(systemName: symbol)
-                                .font(.title)
+                            Text(verbatim: option.emoji)
+                                .font(.system(size: 38))
                                 .frame(width: 72, height: 72)
-                                .background(.tint.opacity(icon == symbol ? 0.3 : 0.12), in: .circle)
+                                .background { AvatarIcon.Background(color: option.color) }
+                                .overlay {
+                                    if icon == option.emoji {
+                                        Circle().strokeBorder(.tint, lineWidth: 3)
+                                    }
+                                }
                         }
-                        .accessibilityAddTraits(icon == symbol ? .isSelected : [])
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(icon == option.emoji ? .isSelected : [])
                     }
                 }
                 .padding()

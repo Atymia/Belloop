@@ -90,7 +90,7 @@ actor MealDBCatalog {
     // ids of all desserts, also downloaded once
     func dessertIDs() async throws -> Set<String> {
         if let cachedDesserts { return cachedDesserts }
-        guard let url = URL(string: "https://www.themealdb.com/api/json/v1/1/filter.php?c=Dessert") else { return [] }
+        guard let url = URL(string: MealDBService.base + "/filter.php?c=Dessert") else { return [] }
         let (data, response) = try await URLSession.shared.data(from: url)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
 
@@ -105,7 +105,7 @@ actor MealDBCatalog {
 
     func ingredientNames() async throws -> [String] {
         if let cached { return cached }
-        guard let url = URL(string: "https://www.themealdb.com/api/json/v1/1/list.php?i=list") else { return [] }
+        guard let url = URL(string: MealDBService.base + "/list.php?i=list") else { return [] }
         let (data, response) = try await URLSession.shared.data(from: url)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
 
@@ -129,10 +129,21 @@ enum IngredientMatcher {
 
     private static let stopwords: Set<String> = ["of", "and", "the", "with", "in", "a", "for"]
 
-    private struct Entry { let name: String; let tokens: Set<String> }
+    private struct Entry {
+        let name: String
+        let tokens: Set<String>
+        let last: String?   // the main word: "tomato" in "Grape Tomatoes"
+
+        init(_ name: String) {
+            let ordered = IngredientMatcher.orderedTokens(name)
+            self.name = name
+            tokens = Set(ordered)
+            last = ordered.last
+        }
+    }
 
     static func bestMatch(for keyword: String, in catalog: [String]) -> String? {
-        let entries = catalog.map { Entry(name: $0, tokens: Set(orderedTokens($0))) }
+        let entries = catalog.map(Entry.init)
 
         // exact match
         let full = Set(orderedTokens(keyword))
@@ -150,9 +161,22 @@ enum IngredientMatcher {
         // but "basil pesto" -> basil is wrong, pesto isn't basil
         let inside = entries.filter { !$0.tokens.isEmpty && $0.tokens.isSubset(of: key) && $0.tokens.contains(head) }
         if let best = inside.max(by: { $0.tokens.count < $1.tokens.count }) { return best.name }
-        // ingredient contains the keyword ("chicken" in "chicken breast"), shortest wins
+        // ingredients that contain the keyword. TheMealDB's own list decides, no word lists.
+        // before, the shortest one won, and in a test with 168 names typed by hand that gave
+        // grapes -> Grape Tomatoes, corn -> Corn Tortillas, beans -> Borlotti Beans
         let containing = entries.filter { key.isSubset(of: $0.tokens) }
-        return containing.min(by: { $0.tokens.count < $1.tokens.count })?.name
+        // only one: fine ("penne" -> "Penne Rigate", "anchovies" -> "Anchovy Fillet"), unless the
+        // keyword only describes another food: grapes aren't "Grape Tomatoes", Tomatoes is an
+        // ingredient of its own
+        if containing.count == 1, let only = containing.first {
+            let singles = Set(entries.filter { $0.tokens.count == 1 }.compactMap(\.last))
+            let describesAnother = only.last.map { !key.contains($0) && singles.contains($0) } ?? false
+            return describesAnother ? nil : only.name
+        }
+        // several: only if exactly one has the keyword as its main word ("corn" -> "Creamed Corn").
+        // "beans" or "pasta" have a dozen kinds, picking one was a guess: the title search does better
+        let main = containing.filter { entry in entry.last.map { key.contains($0) } ?? false }
+        return main.count == 1 ? main.first?.name : nil
         // nothing found: better to skip the product than use a wrong one
     }
 
@@ -173,7 +197,7 @@ enum IngredientMatcher {
         let ordered = orderedTokens(mainPart(of: category))
         let key = Set(ordered)
         guard !key.isEmpty else { return nil }
-        let entries = catalog.map { Entry(name: $0, tokens: Set(orderedTokens($0))) }
+        let entries = catalog.map(Entry.init)
         if let exact = entries.first(where: { $0.tokens == key }) { return exact.name }
         guard ordered.count == 1 else { return nil }
         return entries.filter { key.isSubset(of: $0.tokens) }.min(by: { $0.tokens.count < $1.tokens.count })?.name
@@ -223,12 +247,17 @@ enum IngredientMatcher {
 }
 
 // MARK: - TheMealDB
-// NOTE: key "1" is only for testing, for the App Store we need the paid supporter key
-// (it also lets you filter by more ingredients at once)
+// key "1" is only for development and learning: an app on the App Store needs the
+// supporter key (themealdb.com/api.php). The repo is public, so the key isn't in the code:
+// put it in Belloop/Resources/Secrets.plist (key "MealDBKey"). That file is in .gitignore,
+// Xcode adds it to the app by itself. Without it the app uses "1"
 enum MealDBService {
-    // TODO: change before release
-    private static let apiKey = "1"
-    private static let base = "https://www.themealdb.com/api/json/v1/\(apiKey)"
+    nonisolated static let base: String = {
+        let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist")
+        let secrets = url.flatMap { NSDictionary(contentsOf: $0) }
+        let key = (secrets?["MealDBKey"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "1"
+        return "https://www.themealdb.com/api/json/v1/\(key)"
+    }()
 
     struct MealSummary: Decodable, Hashable, Sendable {
         let idMeal: String

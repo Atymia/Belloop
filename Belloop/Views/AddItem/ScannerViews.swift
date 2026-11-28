@@ -42,15 +42,21 @@ struct ScannerSheet: View {
     @State private var finished = false
     // after a few seconds without a date, the hint gives a tip
     @State private var showTip = false
+    // asked here, when you open the scanner, and not when the app starts
+    @State private var camera = AVCaptureDevice.authorizationStatus(for: .video)
+    @Environment(\.openURL) private var openURL
 
     // false on the simulator and on devices without a flashlight
     private var hasTorch: Bool { AVCaptureDevice.default(for: .video)?.hasTorch ?? false }
 
-    private var tip: LocalizedStringKey {
+    private var tip: LocalizedStringResource {
         "Can't find it? Move a little farther away so it's in focus, or turn on the flashlight."
     }
 
-    private var hintText: LocalizedStringKey {
+    // the one line that says what to do next. it's also the progress: it changes when the
+    // barcode or the date is found, so there's no separate status at the top anymore
+    // (two labels side by side in a panel looked like a segmented control to tap)
+    private var hintText: LocalizedStringResource {
         switch hint {
         case .holdSteady: return "Date found — hold steady…"
         case .chooseOne:  return "Several dates found — tap the expiration date"
@@ -82,7 +88,11 @@ struct ScannerSheet: View {
     var body: some View {
         NavigationStack {
             Group {
-                if DataScannerView.isSupported {
+                if camera == .denied || camera == .restricted {
+                    cameraOff
+                } else if camera == .notDetermined {
+                    Color.black.ignoresSafeArea()   // a moment, while iOS asks for the camera
+                } else if DataScannerView.isSupported {
                     ZStack {
                         DataScannerView(
                             torchOn: torchOn,
@@ -96,8 +106,6 @@ struct ScannerSheet: View {
                         .ignoresSafeArea()
 
                         VStack(spacing: 12) {
-                            // what's been found so far
-                            progress
                             Spacer()
                             // just text on the camera, no panel and no dark fade behind it:
                             // it explains, it isn't a button. the soft shadow keeps it readable
@@ -128,6 +136,16 @@ struct ScannerSheet: View {
                         }
                     }
                 }
+            }
+            // VoiceOver reads the new line when it changes (it can't see the camera)
+            .onChange(of: String(localized: hintText)) { _, line in
+                AccessibilityNotification.Announcement(line).post()
+            }
+            // the first time, iOS asks for the camera right when you open the scanner
+            .task {
+                guard camera == .notDetermined else { return }
+                _ = await AVCaptureDevice.requestAccess(for: .video)
+                camera = AVCaptureDevice.authorizationStatus(for: .video)
             }
             .navigationTitle("Scan product")
             .navigationBarTitleDisplayMode(.inline)
@@ -188,62 +206,22 @@ struct ScannerSheet: View {
         }
     }
 
-    // what's been found so far, in one panel at the top: green when found, orange when the
-    // barcode was read but the product isn't in the database.
-    // one panel and not two capsules, which looked like two buttons
-    private var progress: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) {
-                barcodeStep
-                Divider().frame(height: 16)
-                dateStep
+    // camera permission turned off: say how to turn it on, and keep the way out
+    private var cameraOff: some View {
+        ContentUnavailableView {
+            Label("Camera access is off", systemImage: "camera.fill")
+        } description: {
+            Text("Turn it on in Settings to scan barcodes and expiration dates, or enter the details by hand.")
+        } actions: {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
             }
-            // bigger text: one under the other
-            VStack(alignment: .leading, spacing: 8) {
-                barcodeStep
-                dateStep
+            .buttonStyle(.borderedProminent)
+            if let onManual {
+                Button("Enter manually", action: onManual)
+                    .buttonStyle(.bordered)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .modifier(LabelBackground())
-        .padding(.horizontal)
-        .padding(.top, 12)
-    }
-
-    @ViewBuilder
-    private var dateStep: some View {
-        if result.date != nil {
-            step("Expiration date", symbol: "checkmark.circle.fill", color: Color("StatusFresh"), value: Text("Found"))
-        } else {
-            step("Expiration date", symbol: "calendar", color: .primary, value: Text("Not found yet"))
-        }
-    }
-
-    @ViewBuilder
-    private var barcodeStep: some View {
-        switch result.lookup {
-        case .notAsked:
-            step("Barcode", symbol: "barcode", color: .primary, value: Text("Not found yet"))
-        case .searching:
-            step("Looking it up…", symbol: "magnifyingglass", color: .primary, value: Text("Checking the database"))
-        case .found:
-            step("Barcode", symbol: "checkmark.circle.fill", color: Color("StatusFresh"), value: Text("Found"))
-        case .unknown:
-            step("Unknown product", symbol: "questionmark.circle.fill", color: Color("StatusSoon"), value: Text("Not in the database"))
-        case .storeLabel:
-            step("Shop label", symbol: "tag.fill", color: Color("StatusSoon"), value: Text("Not in the database"))
-        case .offline:
-            step("No connection", symbol: "wifi.slash", color: Color("StatusSoon"), value: Text("Couldn't check the product"))
-        }
-    }
-
-    private func step(_ title: LocalizedStringKey, symbol: String, color: Color, value: Text) -> some View {
-        Label(title, systemImage: symbol)
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(color)
-            .contentTransition(.symbolEffect(.replace))
-            .accessibilityValue(value)
     }
 
     // asks Open Food Facts while you look for the date, so the form doesn't have to ask again
@@ -286,20 +264,6 @@ struct ScannerSheet: View {
         guard !finished else { return }
         finished = true
         onFinish(result)
-    }
-}
-
-// MARK: - Background of the status at the top
-// it only says what's going on, so no Liquid Glass and no capsule: in iOS 26 those mean
-// "you can tap this" (Apple keeps glass for controls, and "Enter manually" at the bottom is the
-// one thing to tap). a dark material in a rounded rectangle instead, readable on any package.
-// dark mode inside so the text is white and the status colors use their dark version.
-// with Reduce Transparency the material becomes solid by itself
-private struct LabelBackground: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(.regularMaterial, in: .rect(cornerRadius: 12))
-            .environment(\.colorScheme, .dark)
     }
 }
 

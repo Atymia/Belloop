@@ -69,7 +69,13 @@ final class FoodItem {
     var categoryTags: [String] = []
     // which version made the keyword, if old it gets recalculated
     var recipeKeywordVersion: Int = 0
-    // true if the user said "I still have it", so we stop asking
+    // the day the user said "I still have it": the product leaves "Past their date" for that
+    // day and comes back the next morning, until it's used or thrown away.
+    // NEW FIELD: after installing this version from Xcode once, CloudKit Console →
+    // Deploy Schema Changes, before uploading to TestFlight (otherwise iCloud sync fails there)
+    var keptOn: Date?
+    // from before keptOn, when "I still have it" meant "never ask again". not used anymore,
+    // it stays because iCloud data can't lose a field
     var expiryReviewed: Bool = false
     @Attribute(.externalStorage) var imageData: Data?
 
@@ -93,6 +99,13 @@ final class FoodItem {
 
     // expired (from the day after)
     var isExpired: Bool { daysLeft < 0 }
+
+    // under "Past their date": expired, and not set aside today with "I still have it"
+    var waitsForAnswer: Bool {
+        guard isExpired else { return false }
+        guard let keptOn else { return true }
+        return !Calendar.current.isDateInToday(keptOn)
+    }
 
     // from today to `days` days from now, expired ones not included
     // (Home's "Expiring soon" and its "See all" list)
@@ -147,7 +160,7 @@ enum ExpiryReview {
             increment(AppSettings.Key.thrownCount)
             context.remove(item)
         case .kept:
-            item.expiryReviewed = true   // keep it and don't ask again
+            item.keptOn = Date()   // back under "Past their date" tomorrow
             NotificationManager.schedule(for: item)
         }
         try? context.save()

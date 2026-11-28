@@ -1,7 +1,6 @@
 import Foundation
 import FoundationModels
 import Translation
-import UIKit
 
 @Generable
 struct ProductName {
@@ -27,8 +26,8 @@ enum IngredientNormalizer {
     // v6: names typed by hand are checked against TheMealDB's ingredients
     //     ("Latte" became the coffee drink and found no recipes, it's milk)
     // v7: no more italian dictionary, Apple's translator does it
-    // v8: the language comes from the shop country and the keyboards too, not only the
-    //     phone's language (a phone in English with "Latte" typed in Italian found nothing)
+    // v8: the language comes from the shop country too, not only the phone's language
+    //     (a phone in English with "Latte" typed in Italian found nothing)
     static let version = 8
 
     struct Keyword: Sendable {
@@ -119,21 +118,22 @@ enum IngredientNormalizer {
 
     // the languages names are probably typed in, all from the person's own settings:
     // the language of the shop country (Settings > Country, the phone's region by default),
-    // then the phone's languages, then the keyboards. english is left out, nothing to translate.
-    // the country comes first: a phone in English in Italy still gets "Latte" from an Italian shop
+    // then the phone's languages. english is left out, nothing to translate.
+    // the country comes first: a phone in English in Italy still gets "Latte" from an Italian shop.
+    // not the keyboards: Apple only allows reading them to adapt the keyboard UI
+    // (it's a "required reason" API, and this reason isn't one of them)
     static var typingLanguages: [Locale.Language] {
         var identifiers: [String] = []
         // "IT" -> "it-Latn-IT": Apple's own table of the main language of each country
         let country = Locale.Language(identifier: "und-" + AppSettings.countryCode).maximalIdentifier
         identifiers.append(country)
         identifiers += Locale.preferredLanguages
-        identifiers += UITextInputMode.activeInputModes.compactMap(\.primaryLanguage)
 
         var seen: Set<String> = []
         return identifiers
             .map { Locale.Language(identifier: $0) }
             .filter { language in
-                // real language codes only (the emoji keyboard says "emoji")
+                // real language codes only
                 guard let code = language.languageCode?.identifier, code != "und", code.count <= 3,
                       language.languageCode != .english else { return false }
                 return seen.insert(code).inserted

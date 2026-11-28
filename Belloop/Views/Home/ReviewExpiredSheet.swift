@@ -5,16 +5,19 @@ import SwiftData
 // Home shows a single row for the expired products, this sheet goes through them.
 // one card per product: you swipe left and right to look at them in any order,
 // and answering one moves you to the next. used or thrown away = deleted,
-// still have it = expiryReviewed, so either way the card leaves the list
+// still have it = set aside until tomorrow (keptOn), so either way the card leaves the list
 struct ReviewExpiredSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \FoodItem.expirationDate) private var items: [FoodItem]
 
+    // the product to show first (a tapped notification about it), else the first one
+    var startAt: UUID? = nil
+
     // the card on screen
     @State private var current: FoodItem.ID?
 
-    private var pending: [FoodItem] { items.filter { $0.isExpired && !$0.expiryReviewed } }
+    private var pending: [FoodItem] { items.filter(\.waitsForAnswer) }
 
     private var position: Int {
         (pending.firstIndex { $0.id == current } ?? 0) + 1
@@ -47,7 +50,7 @@ struct ReviewExpiredSheet: View {
         .presentationDetents([.medium, .large])
         .onAppear {
             if pending.isEmpty { dismiss() }
-            current = pending.first?.id
+            current = (pending.first { $0.uid == startAt } ?? pending.first)?.id
         }
         // last one answered, nothing left to ask
         .onChange(of: pending.isEmpty) { _, empty in
